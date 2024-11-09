@@ -1,8 +1,8 @@
-When Coding a Dc motor with Servo, the servo will not move. 
-The possible issue is Dc Motor and Servo shared the same PWM Channel and caused overlapping in ESP32. 
-So the way to solve this is we need to change the PWMChannel for Motor/Servo. 
-The easier way is to change PWMChannel for the Motor using ledcAttachChannel.
-analogwrite may be not a good way to use for dc motor.
+// When Coding a Dc motor with Servo, the servo will not move. 
+// The possible issue is Dc Motor and Servo shared the same PWM Channel and caused overlapping in ESP32. 
+// So the way to solve this is we need to change the PWMChannel for Motor/Servo. 
+// The easier way is to change PWMChannel for the Motor using ledcAttachChannel.
+// analogwrite may be not a good way to use for dc motor.
 
 #include <ESP32Servo.h>
 #include <L298N.h>
