@@ -154,14 +154,6 @@ void buttonLoop(){
 
 void climbUp(){
   DCMotor1.forward();
-  gripper1.write(0);
-  delay(defaultDelay);
-  gripper1.write(20);
-  delay(defaultDelay);
-}
-
-void climbUp2(){
-  DCMotor2.forward();
   if(buttonF1.isPressed() || buttonF2.isPressed()){
     gripper1.write(50);
     gripper2.write(30);
@@ -172,6 +164,21 @@ void climbUp2(){
   if(buttonB1.isPressed() || buttonB2.isPressed()){
     gripper1.write(30);
     gripper2.write(50);
+    Serial.println("Button B1 and Button B2 Pressed");
+    Serial.println("gripper 1 gripped - gripper 2 released");
+  }
+}
+
+void climbUp2(){
+  DCMotor2.forward();
+  if(button2F1.isPressed() || button2F2.isPressed()){
+    gripper3.write(30);
+    Serial.println("Button 2F1 and Button 2F2 Pressed");
+    Serial.println("gripper 3 gripped");
+  }
+
+  if(button2B1.isPressed() || button2B2.isPressed()){
+    gripper3.write(50);
     Serial.println("Button B1 and Button B2 Pressed");
     Serial.println("gripper 1 gripped - gripper 2 released");
   }
@@ -189,17 +196,11 @@ void stop2(){
 }
 
 void moveToRope2(){
-  if(button2F1.isPressed() || button2F2.isPressed()){
-    gripper3.write(30);
-    Serial.println("Button 2F1 and Button 2F2 Pressed");
-    Serial.println("gripper 3 gripped");
-  }
-
-  if(button2B1.isPressed() || button2B2.isPressed()){
-    gripper3.write(50);
-    Serial.println("Button B1 and Button B2 Pressed");
-    Serial.println("gripper 1 gripped - gripper 2 released");
-  }
+  gripper3.write(30);
+  delay(defaultDelay);
+  gripper1.write(50);
+  delay(defaultDelay);
+  gripper2.write(50);
 }
 
 void backToCenter(){
@@ -209,7 +210,6 @@ void backToCenter(){
     Serial.println("Button 2F1 and Button 2F2 Pressed");
     Serial.println("gripper 3 gripped");
   }
-
   if(button2B1.isPressed() || button2B2.isPressed()){
     gripper3.write(30);
     Serial.println("Button B1 and Button B2 Pressed");
@@ -220,3 +220,5 @@ void backToCenter(){
 void dropDart(){
   dartGripper.write(90);
 }
+
+
