@@ -1,0 +1,117 @@
+    LEG2S1.startEaseTo((70 * 270 / 180) + err[1][0], 2000);
+
+    synchronizeAllServosStartAndWaitForAllServosToStop();
+    
+    LEG2S2.startEaseTo((46 * 270 / 180) + err[1][1], 2000);
+
+    synchronizeAllServosStartAndWaitForAllServosToStop();
+
+    //LEG 4 RAISE
+    LEG4S1.startEaseTo(70 + err[3][0], 2000);
+
+    synchronizeAllServosStartAndWaitForAllServosToStop();
+
+    LEG4S2.startEaseTo(46 + err[3][1], 2000);
+
+    // delay(defaultDelay);
+    synchronizeAllServosStartAndWaitForAllServosToStop();
+
+
+    //LEG 1 BACKWARD
+    LEG1S1.startEaseTo(75 + err[0][0], 2000);
+
+    synchronizeAllServosStartAndWaitForAllServosToStop();
+
+    LEG1S2.startEaseTo(26 + err[0][1], 2000);
+
+    synchronizeAllServosStartAndWaitForAllServosToStop();
+
+    //leg 3 BACKWARD
+    LEG3S1.startEaseTo(88 + err[2][0], 2000);
+
+    synchronizeAllServosStartAndWaitForAllServosToStop();
+
+    LEG3S2.startEaseTo(49 + err[2][1], 2000);
+
+    // delay(defaultDelay);
+    synchronizeAllServosStartAndWaitForAllServosToStop();
+
+
+    //---------------------------------------------------
+
+    //leg 2 FORWARD
+    LEG2S1.startEaseTo((66 * 270 / 180) + err[1][0], 2000);
+
+    synchronizeAllServosStartAndWaitForAllServosToStop();
+
+    LEG2S2.startEaseTo((25 * 270 / 180) + err[1][1], 2000);
+
+    synchronizeAllServosStartAndWaitForAllServosToStop();
+
+    //LEG 4 FORWARD 
+    LEG4S1.startEaseTo(94 + err[3][0], 2000);
+
+    synchronizeAllServosStartAndWaitForAllServosToStop();
+
+    LEG4S2.startEaseTo(46 + err[3][1], 2000);
+
+    // delay(defaultDelay);
+    synchronizeAllServosStartAndWaitForAllServosToStop();
+
+    //LEG 1 RAISE
+    LEG1S1.startEaseTo(73 + err[0][0], 2000);
+
+    synchronizeAllServosStartAndWaitForAllServosToStop();
+
+    LEG1S2.startEaseTo(49 + err[0][1], 2000);
+
+    synchronizeAllServosStartAndWaitForAllServosToStop();
+
+    //leg 3 RAISE
+    LEG3S1.startEaseTo(73 + err[2][0], 2000); 
+
+    synchronizeAllServosStartAndWaitForAllServosToStop();
+
+    LEG3S2.startEaseTo(49 + err[2][1], 2000);
+
+    // delay(defaultDelay);
+    synchronizeAllServosStartAndWaitForAllServosToStop();
+    
+    //---------------------------------------------------
+    //leg 2 BACKWARD
+    LEG2S1.startEaseTo((93 * 270 / 180) + err[1][0], 2000);
+
+    synchronizeAllServosStartAndWaitForAllServosToStop();
+
+    LEG2S2.startEaseTo((44 * 270 / 180) + err[1][1], 2000);
+
+    synchronizeAllServosStartAndWaitForAllServosToStop();
+
+    //LEG 4 BACKWARD
+    LEG4S1.startEaseTo(67 + err[3][0], 2000);
+
+    synchronizeAllServosStartAndWaitForAllServosToStop();
+
+    LEG4S2.startEaseTo(32 + err[3][1], 2000);
+
+    // delay(defaultDelay);
+    synchronizeAllServosStartAndWaitForAllServosToStop();
+
+    //LEG 1 FOWARD
+    LEG1S1.startEaseTo(94 + err[0][0], 2000);
+
+    synchronizeAllServosStartAndWaitForAllServosToStop();
+
+    LEG1S2.startEaseTo(53 + err[0][1], 2000);
+
+    synchronizeAllServosStartAndWaitForAllServosToStop();
+
+    //LEG 3 FORWARD
+    LEG3S1.startEaseTo(73 + err[2][0], 2000);
+
+    synchronizeAllServosStartAndWaitForAllServosToStop();
+
+    LEG3S2.startEaseTo(24 + err[2][1], 2000);
+
+    // delay(defaultDelay);  
+    synchronizeAllServosStartAndWaitForAllServosToStop();
