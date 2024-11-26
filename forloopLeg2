@@ -1,0 +1,26 @@
+for(int leg2S1 = 70; leg2S1 >= 66; leg2S1--){
+    LEG2S1.write((leg2S1 * 270 / 180) + err[1][0]);
+    delay(loopDelay);
+  }
+  for(int leg2S2 = 46; leg2S2 >= 25; leg2S2--){
+    LEG2S2.write((leg2S2 * 270 / 180) + err[1][1]);
+    delay(loopDelay);
+  }
+
+  for(int leg2S1 = 66; leg2S1 <= 93; leg2S1++){
+    LEG2S1.write((leg2S1 * 270 / 180) + err[1][0]);
+    delay(loopDelay);
+  }
+  for(int leg2S2 = 25; leg2S2 <= 44; leg2S2++){
+    LEG2S2.write((leg2S2 * 270 / 180) + err[1][1]);
+    delay(loopDelay);
+  }
+
+  for(int leg2S1 = 93; leg2S1 >= 70; leg2S1--){
+    LEG2S1.write((leg2S1 * 270 / 180) + err[1][0]);
+    delay(loopDelay);
+  }
+  for(int leg2S2 = 44; leg2S2 <= 46; leg2S2++){
+    LEG2S2.write((leg2S2 * 270 / 180) + err[1][1]);
+    delay(loopDelay);
+  }
