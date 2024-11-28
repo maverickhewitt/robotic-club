@@ -43,7 +43,7 @@ void updateGyro() {
   avgAngle[avgCounter++] = angleDifference;
   if (avgCounter == 5) avgCounter = 0;
 
-  delay(1000); 
+  // delay(300); 
 }
 
 int getAvgGyro() {
