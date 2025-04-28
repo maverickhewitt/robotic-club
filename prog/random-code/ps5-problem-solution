@@ -1,1 +1,14 @@
+Kalau ada error begini
+error: implicit declaration of function 'esp_base_mac_addr_set'
 
+kamu masuk pigi
+Arduino\libraries\ps5Controller\src
+
+tempat libraries tu kana letak d arduino ide.
+
+suda dalam src folder, cari file name -> ps5.c
+
+lepastu letak ja ->
+esp_err_t esp_base_mac_addr_set(uint8_t *Mac);
+
+paling atas
