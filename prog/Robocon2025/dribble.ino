@@ -1,13 +1,14 @@
 #include <CytronMotorDriver.h>
 #define IR_PIN 32
+#define PIN1 18
+#define PIN2 19
 
 
 int sensor;
 int ballPassCounter = 0;
 bool isBallPass = false;
 
-CytronMD motorLeft(PWM_DIR, 18, 19); // PWM 1 = Pin 18, DIR 1 = Pin 19
-CytronMD motorRight(PWM_DIR, 22, 23);
+CytronMD Dribble(PWM_DIR, PIN1, PIN2, 1);
 
 void setup() {
   Serial.begin(115200);
@@ -19,26 +20,11 @@ void loop() {
   Serial.print("Value:");
   Serial.println(sensor);
 
-  motorLeft.setSpeed(-255);
-  motorRight.setSpeed(255);
-  
   if(sensor = 1){
-    isBallPass = true;
-  }
-
-  if(isBallPass){
-    ballPassCounter++;
-    isBallPass = false;
-  }
-
-  if(ballPassCounter == 1){
-    motorLeft.setSpeed(255);
-    motorRight.setSpeed(-255);
-  }
-  
-  if(ballPassCounter == 2){
-    delay(200);
-    motorLeft.setSpeed(0);
-    motorRight.setSpeed(0);
+   Dribble.setSpeed(0);
+   delay(500);
+   Dribble.setSpeed(255);
+   delay(500);
+   Dribble.setSpeed(0);
   }
 }
