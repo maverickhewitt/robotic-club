@@ -9,7 +9,7 @@
 
 int sensor;
 CytronMD Dribble(PWM_DIR, DRIBBLE_PIN1, DRIBBLE_PIN2, 1);
-CytronMD Extender(PWM_DIR, EXTEND_PIN1, EXTEND_PIN2, 1);
+CytronMD Extender(PWM_DIR, EXTEND_PIN1, EXTEND_PIN2, 2);
 
 void setup() {
   Serial.begin(115200);
