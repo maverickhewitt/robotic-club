@@ -12,7 +12,7 @@
 #define LEG4PIN1 17
 #define LEG4PIN2 16
 
-#define IR_PIN 12
+#define IR_PIN 27
 
 #define SERVO_MIN_PULSE 500
 #define SERVO_MAX_PULSE 2500
@@ -65,16 +65,16 @@ float a = 15.0;
 float b = 20.0;
 float d = 25.0;
 
-float x = 5.0;
-float h = 2.0;
+float x[4] = {5.0, 0.0, 0.0, 0.0};
+float h[4] = {5.0, 0.0, 0.0, 0.0};
 
 float L = 2.0;
 float H = 2.0;
 
-float teta1 = (atan(x/h) * RAD_TO_DEG);
+// float teta1 = (atan(x/h) * RAD_TO_DEG);
 float teta2 = (acos((sq(d)+sq(a)-sq(b))/(2*a*d)) * RAD_TO_DEG);
 
-float hip = 90 - teta1 - teta2;
+// float hip = 90 - teta1 - teta2;
 float knee = (acos((sq(a)+sq(b)-sq(d))/(2*a*b)) * RAD_TO_DEG);
 
 Servo LEG1S1;
@@ -97,11 +97,22 @@ void setup() {
 }
 
 void loop() {
-  Serial.print("Hip:");
-  Serial.println(hip);
-  Serial.print("Knee:");
-  Serial.println(knee);
+  sensor = digitalRead(IR_PIN);
+  Serial.print("Sensor:");
+  Serial.println(sensor);
   delay(200);
+
+  // for(stepIndex = 0; i<5;i++){
+  //   float teta1 = (atan(x[stepIndex]/h[stepIndex]) * RAD_TO_DEG);
+  //   float hip = 90 - teta1 - teta2;
+  // }
+  // stepIndex = 0;
+  
+  // Serial.print("Hip:");
+  // Serial.println(hip);
+  // Serial.print("Knee:");
+  // Serial.println(knee);
+  // delay(200);
 
   // LEG1S1.write(hip - err[0][0]);
   // LEG1S2.write(knee - err[0][1]);
