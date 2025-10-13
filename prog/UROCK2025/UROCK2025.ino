@@ -1,7 +1,7 @@
 #include <ESP32Servo.h>
 
-#define LEG1PIN1 26
-#define LEG1PIN2 12
+#define LEG1PIN1 12
+#define LEG1PIN2 26
 
 #define LEG2PIN1 25
 #define LEG2PIN2 26
@@ -21,7 +21,7 @@
 #define RAD_TO_DEG 57.295779513
 #define PI 3.1415926535897932384626433832795
 
-int err[4][2] = {{8,0}, {0,0}, {0,0}, {0,0}};
+int err[4][2] = {{16,0}, {0,0}, {0,0}, {0,0}};
 
 // ini jalan normal
 
@@ -127,10 +127,13 @@ void loop() {
     Serial.print(" | Knee: ");
     Serial.println(kneeDeg);
 
+    LEG1S1.write(hipDeg - err[0][0]);
+    LEG1S2.write(kneeDeg - err[0][1]);
+
     delay(dt * 1000); // 2 sec / 50 steps = 40ms per step
   }
 
-  while (1);
+  // while (1);
 }
 
 void setupLeg() {
