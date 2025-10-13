@@ -19,6 +19,7 @@
 #define SERVO_HERTZ 300
 
 #define RAD_TO_DEG 57.295779513
+#define PI 3.1415926535897932384626433832795
 
 int err[4][2] = {{8,0}, {0,0}, {0,0}, {0,0}};
 
@@ -63,19 +64,15 @@ int sensor;
 
 float a = 15.0;
 float b = 20.0;
-float d = 25.0;
+float dConst = 25.0;
 
-float x[4] = {5.0, 0.0, 0.0, 0.0};
-float h[4] = {5.0, 0.0, 0.0, 0.0};
+float h = 25.0;
+float L = 10.0;
+float H = 4.0;
 
-float L = 2.0;
-float H = 2.0;
-
-// float teta1 = (atan(x/h) * RAD_TO_DEG);
-float teta2 = (acos((sq(d)+sq(a)-sq(b))/(2*a*d)) * RAD_TO_DEG);
-
-// float hip = 90 - teta1 - teta2;
-float knee = (acos((sq(a)+sq(b)-sq(d))/(2*a*b)) * RAD_TO_DEG);
+float totalTime = 2.0;  // seconds
+int steps = 50;
+float dt = totalTime / steps;
 
 Servo LEG1S1;
 Servo LEG1S2;
@@ -97,87 +94,43 @@ void setup() {
 }
 
 void loop() {
-  sensor = digitalRead(IR_PIN);
-  Serial.print("Sensor:");
-  Serial.println(sensor);
-  delay(200);
+  for (int i = 0; i <= steps; i++) {
+    float t = (float)i / steps;
 
-  // for(stepIndex = 0; i<5;i++){
-  //   float teta1 = (atan(x[stepIndex]/h[stepIndex]) * RAD_TO_DEG);
-  //   float hip = 90 - teta1 - teta2;
-  // }
-  // stepIndex = 0;
-  
-  // Serial.print("Hip:");
-  // Serial.println(hip);
-  // Serial.print("Knee:");
-  // Serial.println(knee);
-  // delay(200);
+    float coorX = L * (t - (sin(2 * PI * t) / (2 * PI)));
+    float coorY = (H / 2) * (1 - cos(2 * PI * t));
 
-  // LEG1S1.write(hip - err[0][0]);
-  // LEG1S2.write(knee - err[0][1]);
-  // delay(200);
-  
-  // LEG1S1.write(45 - err[0][0]);
-  // if (Serial.available() > 0) {
-  //   char code = Serial.read(); 
-  //   int angle = Serial.parseInt();
+    float d = sqrt(sq(5 - coorX) + sq(25 - coorY));
 
-  //   if (angle >= 0 && angle <= 270) {
-  //     if (code == 'A' || code == 'a') { 
+    float knee = acos((sq(a) + sq(b) - sq(d)) / (2 * a * b));
+    float hip;
 
-  //       LEG1S1.write(angle);
+    if (abs(d - 25.0) < 0.01) {
+      hip = (PI / 2) - atan(coorX / h) - acos((sq(d) + sq(a) - sq(b)) / (2 * a * d));
+    } else {
+      hip = (PI / 2) + atan(coorX / h) - acos((sq(d) + sq(a) - sq(b)) / (2 * a * d));
+    }
 
-  //       Serial.print("Servo S1 set to angle: ");
-  //       Serial.println(angle);
-  //     } else if (code == 'B' || code == 'b') {
+    float hipDeg = hip * RAD_TO_DEG;
+    float kneeDeg = knee * RAD_TO_DEG;
 
-  //       LEG1S2.write(angle);
-        
-  //       Serial.print("Servo S2 set to angle: ");
-  //       Serial.println(angle);
-  //     } 
-  //     else {
-  //       Serial.println("Invalid command. Use A<angle> or B<angle>");
-  //     }
-  //   } else {
-  //     Serial.println("Please input an angle between 0 and 180.");
-  //   }
+    Serial.print("Step: ");
+    Serial.print(i);
+    Serial.print(" | CoorX: ");
+    Serial.print(coorX);
+    Serial.print(" | CoorY: ");
+    Serial.print(coorY);
+    Serial.print(" | d: ");
+    Serial.print(d);
+    Serial.print(" | Hip: ");
+    Serial.print(hipDeg);
+    Serial.print(" | Knee: ");
+    Serial.println(kneeDeg);
 
-  //   while (Serial.available() > 0) {
-  //     Serial.read();
-  //   }
-  // }
-  // LEG1S1.write(75 + err[0][0]);
-  // LEG1S2.write(45 + err[0][1]);
-  // delay(300);
-  // LEG1S1.write(68 + err[0][0]);
-  // LEG1S2.write(49 + err[0][1]);
-  // delay(300);
-  // LEG1S1.write(59 + err[0][0]);
-  // LEG1S2.write(24 + err[0][1]);
-  // delay(300);
-  // LEG1S1.write(64 + err[0][0]);
-  // LEG1S2.write(19 + err[0][1]);
-  // delay(300);
-  // sensor = digitalRead(IR_PIN);
-  // Serial.print("SENSOR: ");
-  // Serial.println(sensor);
-  // if(sensor == 0 && isClimbingMode){
-  //   isClimbingMode = false;
-  //   stepIndex = 0;
-  // } 
-  // else if(sensor == 1 && !isClimbingMode){
-  //   isClimbingMode = true;
-  //   stepIndex = 0;
-  // }
+    delay(dt * 1000); // 2 sec / 50 steps = 40ms per step
+  }
 
-  // if(isClimbingMode) {
-  //   climbingL1();
-  // } else {
-  //   moveL1();
-  // }
-
+  while (1);
 }
 
 void setupLeg() {
