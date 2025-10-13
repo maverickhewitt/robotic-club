@@ -1,7 +1,7 @@
 #include <ESP32Servo.h>
 
-#define LEG1PIN1 32
-#define LEG1PIN2 33
+#define LEG1PIN1 26
+#define LEG1PIN2 12
 
 #define LEG2PIN1 25
 #define LEG2PIN2 26
@@ -18,7 +18,9 @@
 #define SERVO_MAX_PULSE 2500
 #define SERVO_HERTZ 300
 
-int err[4][2] = {{0,0}, {0,0}, {0,0}, {0,0}};
+#define RAD_TO_DEG 57.295779513
+
+int err[4][2] = {{8,0}, {0,0}, {0,0}, {0,0}};
 
 // ini jalan normal
 
@@ -59,6 +61,22 @@ bool isClimbingMode = false;
 int customDelay = 300; //ubah ini kalau mau ubah delay dia
 int sensor;
 
+float a = 15.0;
+float b = 20.0;
+float d = 25.0;
+
+float x = 5.0;
+float h = 2.0;
+
+float L = 2.0;
+float H = 2.0;
+
+float teta1 = (atan(x/h) * RAD_TO_DEG);
+float teta2 = (acos((sq(d)+sq(a)-sq(b))/(2*a*d)) * RAD_TO_DEG);
+
+float hip = 90 - teta1 - teta2;
+float knee = (acos((sq(a)+sq(b)-sq(d))/(2*a*b)) * RAD_TO_DEG);
+
 Servo LEG1S1;
 Servo LEG1S2;
 
@@ -74,29 +92,80 @@ Servo LEG4S2;
 void setup() {
   Serial.begin(115200);
   setupLeg();
-  standingLeg();
-  delay(1000);
+  // standingLeg();
+  // delay(1000);
 }
 
 void loop() {
-  
-  sensor = digitalRead(IR_PIN);
-  Serial.print("SENSOR: ");
-  Serial.println(sensor);
-  if(sensor == 0 && isClimbingMode){
-    isClimbingMode = false;
-    stepIndex = 0;
-  } 
-  else if(sensor == 1 && !isClimbingMode){
-    isClimbingMode = true;
-    stepIndex = 0;
-  }
+  Serial.print("Hip:");
+  Serial.println(hip);
+  Serial.print("Knee:");
+  Serial.println(knee);
+  delay(200);
 
-  if(isClimbingMode) {
-    climbingL1();
-  } else {
-    moveL1();
-  }
+  // LEG1S1.write(hip - err[0][0]);
+  // LEG1S2.write(knee - err[0][1]);
+  // delay(200);
+  
+  // LEG1S1.write(45 - err[0][0]);
+  // if (Serial.available() > 0) {
+  //   char code = Serial.read(); 
+  //   int angle = Serial.parseInt();
+
+  //   if (angle >= 0 && angle <= 270) {
+  //     if (code == 'A' || code == 'a') { 
+
+  //       LEG1S1.write(angle);
+
+  //       Serial.print("Servo S1 set to angle: ");
+  //       Serial.println(angle);
+  //     } else if (code == 'B' || code == 'b') {
+
+  //       LEG1S2.write(angle);
+        
+  //       Serial.print("Servo S2 set to angle: ");
+  //       Serial.println(angle);
+  //     } 
+  //     else {
+  //       Serial.println("Invalid command. Use A<angle> or B<angle>");
+  //     }
+  //   } else {
+  //     Serial.println("Please input an angle between 0 and 180.");
+  //   }
+
+  //   while (Serial.available() > 0) {
+  //     Serial.read();
+  //   }
+  // }
+  // LEG1S1.write(75 + err[0][0]);
+  // LEG1S2.write(45 + err[0][1]);
+  // delay(300);
+  // LEG1S1.write(68 + err[0][0]);
+  // LEG1S2.write(49 + err[0][1]);
+  // delay(300);
+  // LEG1S1.write(59 + err[0][0]);
+  // LEG1S2.write(24 + err[0][1]);
+  // delay(300);
+  // LEG1S1.write(64 + err[0][0]);
+  // LEG1S2.write(19 + err[0][1]);
+  // delay(300);
+  // sensor = digitalRead(IR_PIN);
+  // Serial.print("SENSOR: ");
+  // Serial.println(sensor);
+  // if(sensor == 0 && isClimbingMode){
+  //   isClimbingMode = false;
+  //   stepIndex = 0;
+  // } 
+  // else if(sensor == 1 && !isClimbingMode){
+  //   isClimbingMode = true;
+  //   stepIndex = 0;
+  // }
+
+  // if(isClimbingMode) {
+  //   climbingL1();
+  // } else {
+  //   moveL1();
+  // }
 
 }
 
