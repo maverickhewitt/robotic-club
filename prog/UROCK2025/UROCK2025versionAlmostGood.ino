@@ -21,7 +21,7 @@
 #define RAD_TO_DEG 57.295779513
 #define PI 3.1415926535897932384626433832795
 
-int err[4][2] = {{16,10}, {0,0}, {0,0}, {0,0}};
+int err[4][2] = {{8,3}, {0,0}, {0,0}, {0,0}};
 
 unsigned long lastMoveTime = 0;
 unsigned long currentMillis;
@@ -40,9 +40,9 @@ float b = 20.0;
 float dConst = 25.0;
 
 float h = 25.0;
-float L = 4*PI;
-float H = 4.0;
-float x = L/2;
+float L = 10;
+float H = 6.0;
+float x = 5.0;
 
 Servo LEG1S1;
 Servo LEG1S2;
@@ -75,41 +75,108 @@ float ramp(float current, float target, float step) {
 }
 
 void loop() {
-  float t = 1.0;
-  float coorX = L * (t - (sin(2 * PI * t) / (2 * PI)));
-  float coorY = (H / 2) * (1 - cos(2 * PI * t));
+  // // Forward motion
+  // LEG1S2.write(64);
+  // delay(40);
+  // LEG1S1.write(41);
+  // delay(300);
+  // LEG1S2.write(64);
+  // delay(40);
+  // LEG1S1.write(26);
+  // delay(300);
 
-  float d = sqrt(sq(x - coorX) + sq(h - coorY));
+  // LEG1S2.write(63);
+  // delay(40);
+  // LEG1S1.write(33);
+  // delay(300);
+  // LEG1S2.write(48); //more than 60 plus 3, less -
+  // delay(40);
+  // LEG1S1.write(23);
+  // delay(300);
 
-  float knee = acos((sq(a) + sq(b) - sq(d)) / (2 * a * b));
-  float hip;
-  
-  if(coorX > x) {
-    hip = (PI / 2) + atan(coorX / h) - acos((sq(d) + sq(a) - sq(b)) / (2 * a * d));
-  }else if (coorX < x) {
-    hip = (PI / 2) - atan(coorX / h) - acos((sq(d) + sq(a) - sq(b)) / (2 * a * d));
-  }else if (coorX == x) {
-    hip = (PI / 2) - acos((sq(d) + sq(a) - sq(b)) / (2 * a * d));
+  for (int i = 0; i <= L; i++) {
+    float t = (float)i / L;
+    float coorX = L * (t - (sin(2 * PI * t) / (2 * PI)));
+    float coorY = (H / 2) * (1 - cos(2 * PI * t));
+
+    float d = sqrt(sq(x - coorX) + sq(h - coorY));
+
+    float knee = acos((sq(a) + sq(b) - sq(d)) / (2 * a * b));
+    float hip;
+    
+    if(coorX > x) {
+      hip = (PI / 2) + atan(coorX / h) - acos((sq(d) + sq(a) - sq(b)) / (2 * a * d));
+    }else if (coorX < x) {
+      hip = (PI / 2) - atan(coorX / h) - acos((sq(d) + sq(a) - sq(b)) / (2 * a * d));
+    }else if (coorX == x) {
+      hip = (PI / 2) - acos((sq(d) + sq(a) - sq(b)) / (2 * a * d));
+    }
+
+    float hipDeg = hip * RAD_TO_DEG;
+    float kneeDeg = knee * RAD_TO_DEG;
+    float convHip = hipDeg * 2/3;
+    float convKnee = kneeDeg * 2/3;
+
+    // Serial.print("Step: ");
+    // Serial.print(i);
+    Serial.print(" | CoorX: ");
+    Serial.print(coorX);
+    Serial.print(" | CoorY: ");
+    Serial.print(coorY);
+    Serial.print(" | d: ");
+    Serial.print(d);
+    Serial.print(" | Hip: ");
+    Serial.print(convHip);
+    Serial.print(" | Knee: ");
+    Serial.println(convKnee);
+
+    LEG1S1.write(convHip + err[0][0]);
+    // LEG1S2.write(kneeDeg + err[0][1]);
+    LEG1S2.write(convKnee + err[0][1]);
+    delay(45);
   }
 
-  float hipDeg = hip * RAD_TO_DEG;
-  float kneeDeg = knee * RAD_TO_DEG;
+  // for (int i = 0; i <= steps; i++) {
+  //   float t = (float)i / steps; 
 
-  // Serial.print("Step: ");
-  // Serial.print(i);
-  Serial.print(" | CoorX: ");
-  Serial.print(coorX);
-  Serial.print(" | CoorY: ");
-  Serial.print(coorY);
-  Serial.print(" | d: ");
-  Serial.print(d);
-  Serial.print(" | Hip: ");
-  Serial.print(hipDeg);
-  Serial.print(" | Knee: ");
-  Serial.println(kneeDeg);
+  //   float coorX = L * (1.0 - t); 
+  //   float coorY = 0.0;  
 
-  LEG1S1.write(hipDeg - err[0][0]);
-  LEG1S2.write(kneeDeg - err[0][1]);
+  //   float d = sqrt(sq(x - coorX) + sq(h - coorY));
+    
+  //   d = constrain(d, 0.1, a + b - 0.1);
+
+  //   float knee = acos((sq(a) + sq(b) - sq(d)) / (2 * a * b));
+  //   float hip;
+    
+  //   if(coorX > x) {
+  //     hip = (PI / 2) + atan(coorX / h) - acos((sq(d) + sq(a) - sq(b)) / (2 * a * d));
+  //   }else if (coorX < x) {
+  //     hip = (PI / 2) - atan(coorX / h) - acos((sq(d) + sq(a) - sq(b)) / (2 * a * d));
+  //   }else if (coorX == x) {
+  //     hip = (PI / 2) - acos((sq(d) + sq(a) - sq(b)) / (2 * a * d));
+  //   }
+
+  //   float hipDeg = hip * RAD_TO_DEG;
+  //   float kneeDeg = knee * RAD_TO_DEG;
+
+  //   // Serial.print("Step: ");
+  //   // Serial.print(i);
+  //   Serial.print(" | CoorX: ");
+  //   Serial.print(coorX);
+  //   Serial.print(" | CoorY: ");
+  //   Serial.print(coorY);
+  //   Serial.print(" | d: ");
+  //   Serial.print(d);
+  //   Serial.print(" | Hip: ");
+  //   Serial.print(hipDeg);
+  //   Serial.print(" | Knee: ");
+  //   Serial.println(kneeDeg);
+
+  //   LEG1S1.write(hipDeg + err[0][0]);
+  //   LEG1S2.write(kneeDeg + err[0][1]);
+  //   delay(dt);
+  // }
       
   // for (int i = 0; i <= steps; i++) {
   //     float t = (float)i / steps;
@@ -150,7 +217,6 @@ void loop() {
 
   //     delay(dt); 
   //   }
-
 
 }
 
