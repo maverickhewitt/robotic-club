@@ -3,12 +3,13 @@
 void setup() {
   Serial.begin(115200);
   setupLeg();
-  setupGyro();
-  standingLeg();
-  delay(1000);
+  // setupGyro();
+  generateLegPath();
+  // standingLeg(); 
+  delay(500);
 }
 
 void loop() {
-  
+  moveL1();
 }
 
