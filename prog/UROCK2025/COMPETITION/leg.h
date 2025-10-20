@@ -1,5 +1,7 @@
 #include "ServoEasing.hpp"
 #include <ESP32Servo.h>
+#include <math.h>
+#include <Ramp.h>
 
 #define LEG1PIN1 12
 #define LEG1PIN2 26
@@ -18,15 +20,22 @@
 #define SERVO_HERTZ 300
 
 #define RAD_TO_DEG 57.295779513
-#define PI 3.1415926535897932384626433832795
 
 #define APD 60
-#define COND EASE_CUBIC_IN_OUT
+#define COND EASE_LINEAR
+
+float a = 15.0;
+float b = 20.0;
+float h = 25.0;
+float L = 10;
+float x = 5.0;
+float H = 5.0;
+float H_LOW = -2.0;
 
 int err[4][2] = {{4,10}, {0,0}, {0,0}, {0,0}};
 
-int ANGLE_LEG1S1[4] = {0,0,0,0};
-int ANGLE_LEG1S2[4] = {0,0,0,0};
+float ANGLE_LEG1S1[11];
+float ANGLE_LEG1S2[11];
 
 int ANGLE_LEG2S1[4] = {0,0,0,0};
 int ANGLE_LEG2S2[4] = {0,0,0,0};
@@ -53,16 +62,6 @@ int CLIMB_ANGLE_LEG4S2[4] = {0,0,0,0};
 
 // ------------------------------------
 
-float a = 15.0;
-float b = 20.0;
-float dConst = 25.0;
-
-float h = 25.0;
-float L = 10;
-float H = 5.0;
-float H_LOW = -2.0;
-float x = 5.0;
-
 ServoEasing LEG1S1;
 ServoEasing LEG1S2;
 
@@ -74,6 +73,9 @@ ServoEasing LEG3S2;
 
 ServoEasing LEG4S1;
 ServoEasing LEG4S2;
+
+rampFloat hipRamp;
+rampFloat kneeRamp;
 
 void setupLeg() {
   LEG1S1.setPeriodHertz(SERVO_HERTZ);
@@ -113,6 +115,47 @@ void setupLeg() {
   LEG4S2.setEasingType(COND);
 }
 
+void findAngle(float i, int stepIndex) {   
+  float t = (float)i / L;
+  float coorX = L * (t - (sin(2 * PI * t) / (2 * PI)));
+  float coorY = (H / 2) * (1 - cos(2 * PI * t));
+
+  float d = sqrt(sq(x - coorX) + sq(h - coorY));
+
+  float knee = acos((sq(a) + sq(b) - sq(d)) / (2 * a * b));
+  float hip;
+  
+  if (coorX > x) {
+    hip = (PI / 2) + atan(coorX / h) - acos((sq(d) + sq(a) - sq(b)) / (2 * a * d));
+  } else if (coorX < x) {
+    hip = (PI / 2) - atan(coorX / h) - acos((sq(d) + sq(a) - sq(b)) / (2 * a * d));
+  } else {
+    hip = (PI / 2) - acos((sq(d) + sq(a) - sq(b)) / (2 * a * d));
+  }
+
+  float hipDeg = hip * RAD_TO_DEG;
+  float kneeDeg = knee * RAD_TO_DEG;
+
+  float convHip = hipDeg * 2 / 3;
+  float convKnee = kneeDeg * 2 / 3;
+
+  ANGLE_LEG1S1[stepIndex] = convHip;
+  ANGLE_LEG1S2[stepIndex] = convKnee;
+
+  Serial.print("Step ");
+  Serial.print(stepIndex);
+  Serial.print(" | Hip: ");
+  Serial.print(convHip);
+  Serial.print(" | Knee: ");
+  Serial.println(convKnee);
+}
+
+void generateLegPath() {
+  for (int i = 0; i <= L; i++) {
+    findAngle(i, i);  
+  }
+}
+
 void standingLeg(){
   LEG1S1.easeTo(ANGLE_LEG1S1[0] + err[0][0]);
   LEG1S2.easeTo(ANGLE_LEG1S2[0] + err[0][1]);
@@ -128,14 +171,20 @@ void standingLeg(){
 }
 
 void moveL1(){
-  LEG1S1.easeTo(ANGLE_LEG1S1[1] + err[0][0]);
-  LEG1S2.easeTo(ANGLE_LEG1S2[1] + err[0][1]);
+  for (int i = 0; i <= L; i++) { 
+      hipRamp.go(ANGLE_LEG1S1[i], 150);   
+      kneeRamp.go(ANGLE_LEG1S2[i], 150);
+      // LEG1S1.easeTo(ANGLE_LEG1S1[i] + err[0][0], 20);
+      // LEG1S2.easeTo(ANGLE_LEG1S2[i] + err[0][1], 20);
 
-  LEG1S1.easeTo(ANGLE_LEG1S1[2] + err[0][0]);
-  LEG1S2.easeTo(ANGLE_LEG1S2[2] + err[0][1]);
+      while (!hipRamp.isFinished() || !kneeRamp.isFinished()) {
+        hipRamp.update();
+        kneeRamp.update();
 
-  LEG1S1.easeTo(ANGLE_LEG1S1[3] + err[0][0]);
-  LEG1S2.easeTo(ANGLE_LEG1S2[3] + err[0][1]);
+        LEG1S1.write(hipRamp.getValue());
+        LEG1S2.write(kneeRamp.getValue());
+    }
+  }
 }
 
 void moveL2(){
