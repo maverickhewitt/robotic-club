@@ -3,17 +3,17 @@
 #include <math.h>
 #include <Ramp.h>
 
-#define LEG1PIN1 12
-#define LEG1PIN2 26
+#define LEG1PIN1 10
+#define LEG1PIN2 11
 
-#define LEG2PIN1 25
-#define LEG2PIN2 28
+#define LEG2PIN1 19
+#define LEG2PIN2 18
 
-#define LEG3PIN1 19
-#define LEG3PIN2 18
+#define LEG3PIN1 12
+#define LEG3PIN2 26
 
-#define LEG4PIN1 17
-#define LEG4PIN2 16
+#define LEG4PIN1 14
+#define LEG4PIN2 13
 
 #define SERVO_MIN_PULSE 500
 #define SERVO_MAX_PULSE 2500
@@ -22,8 +22,8 @@
 #define RAD_TO_DEG 57.295779513
 
 #define APD 20
-#define SPEED 500
-#define SPEED2 500
+#define SPEED 200
+#define SPEED2 SPEED - 10
 #define COND EASE_LINEAR
 #define ARRAY_NO 11
 
@@ -36,7 +36,7 @@ float H = 5.0;
 float H_LOW = -2.0;
 
 //26<<knee<<96
-int err[4][2] = {{9,6}, {0,0}, {0,0}, {0,0}};
+int err[4][2] = {{8,8}, {8,1}, {16,8}, {9,1}};
 
 float ANGLE_LEG1S1[ARRAY_NO];
 float ANGLE_LEG1S2[ARRAY_NO];
@@ -53,8 +53,6 @@ int ANGLE_LEG4S2[ARRAY_NO];
 float LEFT_ANGLE_LEG1S1[ARRAY_NO];
 float LEFT_ANGLE_LEG1S2[ARRAY_NO];
 
-// ------------------------------------
-
 int CLIMB_ANGLE_LEG1S1[ARRAY_NO];
 int CLIMB_ANGLE_LEG1S2[ARRAY_NO];
 
@@ -66,8 +64,6 @@ int CLIMB_ANGLE_LEG3S2[ARRAY_NO];
 
 int CLIMB_ANGLE_LEG4S1[ARRAY_NO];
 int CLIMB_ANGLE_LEG4S2[ARRAY_NO];
-
-// ------------------------------------
 
 ServoEasing LEG1S1;
 ServoEasing LEG1S2;
@@ -122,36 +118,7 @@ void setupLeg() {
   LEG4S2.setEasingType(COND);
 }
 
-void findAngleLeft(float i, int stepIndex){
-  float t = (float)i / L;
-  float coorX = L * (t - (sin(2 * PI * t) / (2 * PI)));
-  float coorY = (H / 2) * (1 - cos(2 * PI * t));
-
-  float d = sqrt(sq(x - coorX) + sq(h - coorY));
-
-  float tethaHipLTan = 90 - atan(coorX/h);
-  float tethaHipLCos = 90 - acos((sq(d) + sq(a) - sq(b)) / (2 * a * d));
-
-  float hipLeft = tethaHipLTan + tethaHipLCos;
-
-  float tethaKneeL = (sin(hipLeft) / b) * d;
-  float kneeLeft = asin(tethaKneeL);
-
-  float hipDegLeft = hipLeft * RAD_TO_DEG;
-  float kneeDegLeft = kneeLeft * RAD_TO_DEG;
-
-  LEFT_ANGLE_LEG1S1[stepIndex] = hipDegLeft;
-  LEFT_ANGLE_LEG1S2[stepIndex] = kneeDegLeft;
-
-  Serial.print("Step ");
-  Serial.print(stepIndex);
-  Serial.print(" | Hip: ");
-  Serial.print(hipDegLeft);
-  Serial.print(" | Knee: ");
-  Serial.println(kneeDegLeft);
-}
-
-void findAngle(float i, int stepIndex) {   
+void findAngleLeft(float i, int stepIndex) {   
   float t = (float)i / L;
   float coorX = L * (t - (sin(2 * PI * t) / (2 * PI)));
   float coorY = (H / 2) * (1 - cos(2 * PI * t));
@@ -166,17 +133,51 @@ void findAngle(float i, int stepIndex) {
   float hipDeg = hip * RAD_TO_DEG;
   float kneeDeg = knee * RAD_TO_DEG;
 
+  // float convHip =hipDeg * 2 / 3; //no need minus 120 kalau kaki right
   float convHip = 120 - (hipDeg * 2 / 3); //no need minus 120 kalau kaki right
-  float convKnee = kneeDeg * 2 / 3;
+  float convKnee =kneeDeg * 2 / 3;
 
   ANGLE_LEG1S1[stepIndex] = convHip;
   ANGLE_LEG1S2[stepIndex] = convKnee;
 
-  ANGLE_LEG2S1[stepIndex] = convHip;
-  ANGLE_LEG2S2[stepIndex] = convKnee;
-
   ANGLE_LEG3S1[stepIndex] = convHip;
   ANGLE_LEG3S2[stepIndex] = convKnee;
+
+  Serial.print("Step ");
+  Serial.print(stepIndex);
+  Serial.print(" | d ");
+  Serial.print(d);
+  Serial.print("Coor X: ");
+  Serial.print(coorX);
+  Serial.print("Coor Y: ");
+  Serial.print(coorY);
+  Serial.print(" | Hip: ");
+  Serial.print(convHip);
+  Serial.print(" | Knee: ");
+  Serial.println(convKnee);
+}
+
+void findAngleRight(float i, int stepIndex) {   
+  float t = (float)i / L;
+  float coorX = L * (t - (sin(2 * PI * t) / (2 * PI)));
+  float coorY = (H / 2) * (1 - cos(2 * PI * t));
+
+  float d = sqrt(sq(x - coorX) + sq(h - coorY));
+
+  float knee = acos((sq(a) + sq(b) - sq(d)) / (2 * a * b));
+  float hip = (PI / 2) + asin(coorX / d) - acos((sq(d) + sq(a) - sq(b)) / (2 * a * d));
+  // float hip = (PI/2) + asin(coorX / d) - acos((sq(d) + sq(a) - sq(b)) / (2 * a * d));
+  // float hip = (PI/2) + atan(coorX / h);
+
+  float hipDeg = hip * RAD_TO_DEG;
+  float kneeDeg = knee * RAD_TO_DEG;
+
+  float convHip =hipDeg * 2 / 3; //no need minus 120 kalau kaki right
+  // float convHip = 120 - (hipDeg * 2 / 3); //no need minus 120 kalau kaki right
+  float convKnee = kneeDeg * 2 / 3;
+
+  ANGLE_LEG2S1[stepIndex] = convHip;
+  ANGLE_LEG2S2[stepIndex] = convKnee;
 
   ANGLE_LEG4S1[stepIndex] = convHip;
   ANGLE_LEG4S2[stepIndex] = convKnee;
@@ -195,9 +196,9 @@ void findAngle(float i, int stepIndex) {
   Serial.println(convKnee);
 }
 
-void generateLegPath() {
+void generateLegPathRight() {
   for (int i = 0; i <= L; i++) {
-    findAngle(i, i);  
+    findAngleRight(i, i);  
   }
 }
 
@@ -207,127 +208,128 @@ void generateLegPathLeft() {
   }
 }
 
-void standingLeg(){
-  LEG1S1.write(ANGLE_LEG1S1[6] - err[0][0]);
-  LEG1S2.write(ANGLE_LEG1S2[0] + err[0][1]);
+void standingLeg() {
+  int midIndex = L / 2;  
 
-  Serial.print("HIP");
-  Serial.println(ANGLE_LEG1S1[6] - err[0][0]);
+  float hipAngle = ANGLE_LEG1S1[midIndex];
+  float kneeAngle = ANGLE_LEG1S2[midIndex];
 
-  Serial.print("KNEE");
-  Serial.println(ANGLE_LEG1S2[0] + err[0][1]);
+  LEG1S1.write(hipAngle + err[0][0]);
+  LEG1S2.write(kneeAngle - err[0][1]);
+
+  LEG2S1.write(ANGLE_LEG2S1[midIndex] + err[1][0]);
+  LEG2S2.write(ANGLE_LEG2S2[midIndex] - err[1][1]);
+
+  LEG3S1.write(ANGLE_LEG3S1[midIndex] + err[2][0]);
+  LEG3S2.write(ANGLE_LEG3S2[midIndex] - err[2][1]);
+
+  LEG4S1.write(ANGLE_LEG4S1[midIndex] + err[3][0]);
+  LEG4S2.write(ANGLE_LEG4S2[midIndex] - err[3][1]);
+
+  Serial.println("Standing Position");
+  Serial.print("HIP: "); Serial.println(hipAngle);
+  Serial.print("KNEE: "); Serial.println(kneeAngle);
 }
 
-void moveL1Left(){
-  for (int i = 0; i <= L; i++) { 
-      hipRamp.go(LEFT_ANGLE_LEG1S1[i] - err[0][0], SPEED);   
-      kneeRamp.go(LEFT_ANGLE_LEG1S2[i] + err[0][1], SPEED);
+void moveL2(){
+  for (int i = 3; i <= L; i++) { 
+      // hipRamp.go(ANGLE_LEG2S1[i] + err[1][0], SPEED);   
+      // kneeRamp.go(ANGLE_LEG2S2[i] - err[1][1], SPEED);
+      hipRamp.go(ANGLE_LEG3S1[i] - err[2][0], SPEED);   
+      kneeRamp.go(ANGLE_LEG3S2[i] + err[2][1], SPEED);
 
       while (!hipRamp.isFinished() || !kneeRamp.isFinished()) {
         hipRamp.update();
         kneeRamp.update();
 
-        LEG1S1.write(hipRamp.getValue());
-
-        if (kneeRamp.getValue() >= 26 && kneeRamp.getValue() <= 96){
-          LEG1S2.write(kneeRamp.getValue());
-        }
-        Serial.print("HIP:");
-        Serial.println(hipRamp.getValue());
-        Serial.print("KNEE:");
-        Serial.println(kneeRamp.getValue());
-    }
-  }
-}
-
-void moveAll(){
-  for (int i = 0; i <= L; i++) { 
-      hipRamp.go(ANGLE_LEG1S1[i] - err[0][0], SPEED);   
-      kneeRamp.go(ANGLE_LEG1S2[i] + err[0][1], SPEED);
-
-      hipRamp.go(ANGLE_LEG2S1[i] - err[0][0], SPEED);   
-      kneeRamp.go(ANGLE_LEG2S2[i] + err[0][1], SPEED);
-
-      hipRamp.go(ANGLE_LEG3S1[i] - err[0][0], SPEED);   
-      kneeRamp.go(ANGLE_LEG3S2[i] + err[0][1], SPEED);
-
-      hipRamp.go(ANGLE_LEG4S1[i] - err[0][0], SPEED);   
-      kneeRamp.go(ANGLE_LEG4S2[i] + err[0][1], SPEED);
-
-      while (!hipRamp.isFinished() || !kneeRamp.isFinished()) {
-        hipRamp.update();
-        kneeRamp.update();
-
-        LEG1S1.write(hipRamp.getValue());
-        LEG2S1.write(hipRamp.getValue());
+        // LEG2S1.write(hipRamp.getValue());
+        // LEG2S2.write(kneeRamp.getValue());
         LEG3S1.write(hipRamp.getValue());
-        LEG4S1.write(hipRamp.getValue());
-
-        if (kneeRamp.getValue() >= 26 && kneeRamp.getValue() <= 96){
-          LEG1S2.write(kneeRamp.getValue());
-          LEG2S2.write(kneeRamp.getValue());
-          LEG3S2.write(kneeRamp.getValue());
-          LEG4S2.write(kneeRamp.getValue());
-        }
-        Serial.print("HIP:");
-        Serial.println(hipRamp.getValue());
-        Serial.print("KNEE:");
-        Serial.println(kneeRamp.getValue());
+        LEG3S2.write(kneeRamp.getValue());
     }
   }
 }
 
-void moveL1(){
-  for (int i = 0; i <= L; i++) { 
-      hipRamp.go(ANGLE_LEG1S1[i] - err[0][0], SPEED);   
-      kneeRamp.go(ANGLE_LEG1S2[i] + err[0][1], SPEED);
+void moveBackL2(){
+  for (int i = L ; i >= 3; i--) { 
+      // hipRamp.go(ANGLE_LEG2S1[i] + err[1][0], SPEED2);   
+      // kneeRamp.go(60 - err[1][1], SPEED2);
+      hipRamp.go(ANGLE_LEG3S1[i] - err[2][0], SPEED2);   
+      kneeRamp.go(ANGLE_LEG3S1[i] + err[2][1], SPEED2);
 
       while (!hipRamp.isFinished() || !kneeRamp.isFinished()) {
         hipRamp.update();
         kneeRamp.update();
 
-        LEG1S1.write(hipRamp.getValue());
-
-        if (kneeRamp.getValue() >= 26 && kneeRamp.getValue() <= 96){
-          LEG1S2.write(kneeRamp.getValue());
-        }
-        Serial.print("HIP:");
-        Serial.println(hipRamp.getValue());
-        Serial.print("KNEE:");
-        Serial.println(kneeRamp.getValue());
+        // LEG2S1.write(hipRamp.getValue());
+        // LEG2S2.write(kneeRamp.getValue());
+        LEG3S1.write(hipRamp.getValue());
+        LEG3S2.write(kneeRamp.getValue());
     }
   }
 }
 
-void moveBackwardL1(){
-  for (int i = 11; i >= 7; i--) { 
-      hipRamp.go(ANGLE_LEG1S1[i] - err[0][0], SPEED2);   
-      kneeRamp.go(60 + err[0][1], SPEED2);
+// void moveForwardLeg(ServoEasing &hip, ServoEasing &knee, float *hipAngles, float *kneeAngles, int legID) {
+//   for (int i = 3; i <= L; i++) {
+//     hipRamp.go(hipAngles[i] + err[legID][0], SPEED);
+//     kneeRamp.go(kneeAngles[i] - err[legID][1], SPEED);
 
-      while (!hipRamp.isFinished() || !kneeRamp.isFinished()) {
-        hipRamp.update();
-        kneeRamp.update();
+//     while (!hipRamp.isFinished() || !kneeRamp.isFinished()) {
+//       hipRamp.update();
+//       kneeRamp.update();
+//       hip.write(hipRamp.getValue());
+//       knee.write(kneeRamp.getValue());
+//     }
+//   }
+// }
 
-        LEG1S1.write(hipRamp.getValue());
-        if (kneeRamp.getValue() >= 26 && kneeRamp.getValue() <= 96){
-          LEG1S2.write(kneeRamp.getValue());
-        }
-        Serial.print("HIP:");
-        Serial.println(hipRamp.getValue());
-        Serial.print("KNEE:");
-        Serial.println(kneeRamp.getValue());
-    }
-  }
-}
+// void moveBackwardLeg(ServoEasing &hip, ServoEasing &knee, float *hipAngles, float *kneeAngles, int legID) {
+//   for (int i = L; i >= 3; i--) {
+//     hipRamp.go(hipAngles[i] + err[legID][0], SPEED2);
+//     kneeRamp.go(hipAngles[i] - err[legID][1], SPEED2);
+
+//     while (!hipRamp.isFinished() || !kneeRamp.isFinished()) {
+//       hipRamp.update();
+//       kneeRamp.update();
+//       hip.write(hipRamp.getValue());
+//       knee.write(kneeRamp.getValue());
+//     }
+//   }
+// }
+
+// void tasuWalkCycle() {
+//   // L1 + L4 move forward
+//   moveForwardLeg(LEG1S1, LEG1S2, ANGLE_LEG1S1, ANGLE_LEG1S2, 0);
+//   moveForwardLeg(LEG4S1, LEG4S2, ANGLE_LEG4S1, ANGLE_LEG4S2, 3);
+
+//   // L2 + L3 push back 
+//   moveBackwardLeg(LEG2S1, LEG2S2, ANGLE_LEG2S1, ANGLE_LEG2S2, 1);
+//   moveBackwardLeg(LEG3S1, LEG3S2, ANGLE_LEG3S1, ANGLE_LEG3S2, 2);
+
+//   // L2 + L3 swing forward
+//   moveForwardLeg(LEG2S1, LEG2S2, ANGLE_LEG2S1, ANGLE_LEG2S2, 1);
+//   moveForwardLeg(LEG3S1, LEG3S2, ANGLE_LEG3S1, ANGLE_LEG3S2, 2);
+
+//   // L1 + L4 push back
+//   moveBackwardLeg(LEG1S1, LEG1S2, ANGLE_LEG1S1, ANGLE_LEG1S2, 0);
+//   moveBackwardLeg(LEG4S1, LEG4S2, ANGLE_LEG4S1, ANGLE_LEG4S2, 3);
+// }
+
 
 void settingServo(){
   if(Serial.available() > 0){
     char ch = Serial.read();
     int input = Serial.parseInt();
     if(ch == 'a'){
+      LEG2S1.write(input);
+      LEG3S1.write(input);
+      LEG4S1.write(input);
       LEG1S1.write(input);
     }else if(ch == 'b'){
+      LEG2S2.write(input);
       LEG1S2.write(input);
+      LEG4S2.write(input);
+      LEG3S2.write(input);
     }
     while(Serial.available() > 0){
       Serial.read();
