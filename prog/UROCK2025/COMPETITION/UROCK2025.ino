@@ -5,18 +5,23 @@ void setup() {
   setupLeg();
   // setupGyro();
   // standingLeg(); 
-  // generateLegPath();
+  generateLegPathLeft();
+  // generateLegPathRight();
 }
 
 void loop() {
-  generateLegPath();
-  moveAll();
+  // generateLegPath();
+  // generateLegPathRight();
+  // moveAll();
   // standingLeg();
   // generateLegPathLeft();
   // moveL1Left();
   // generateLegPath();
   // moveBackwardL1();
   // moveL1();
+  moveL2();
+  moveBackL2();
   // settingServo();
+  // delay(500);
 }
 
