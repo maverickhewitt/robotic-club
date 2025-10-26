@@ -6,11 +6,11 @@
 #define LEG1PIN1 10
 #define LEG1PIN2 11
 
-#define LEG2PIN1 19
-#define LEG2PIN2 18
+#define LEG2PIN1 12
+#define LEG2PIN2 27
 
-#define LEG3PIN1 12
-#define LEG3PIN2 26
+#define LEG3PIN1 26
+#define LEG3PIN2 25
 
 #define LEG4PIN1 14
 #define LEG4PIN2 13
@@ -22,7 +22,7 @@
 #define RAD_TO_DEG 57.295779513
 
 #define APD 20
-#define SPEED 200
+#define SPEED 300
 #define SPEED2 SPEED - 10
 #define COND EASE_LINEAR
 #define ARRAY_NO 11
@@ -31,12 +31,12 @@ float a = 15.0;
 float b = 17.0;
 float h = 25.0;
 float L = 10.0;
-float x = 5.0;
+float x = 5.00;
 float H = 5.0;
 float H_LOW = -2.0;
 
 //26<<knee<<96
-int err[4][2] = {{8,8}, {8,1}, {16,8}, {9,1}};
+int err[4][2] = {{8,8}, {8,6}, {16,8}, {9,1}};
 
 float ANGLE_LEG1S1[ARRAY_NO];
 float ANGLE_LEG1S2[ARRAY_NO];
@@ -165,14 +165,23 @@ void findAngleRight(float i, int stepIndex) {
   float d = sqrt(sq(x - coorX) + sq(h - coorY));
 
   float knee = acos((sq(a) + sq(b) - sq(d)) / (2 * a * b));
-  float hip = (PI / 2) + asin(coorX / d) - acos((sq(d) + sq(a) - sq(b)) / (2 * a * d));
+  float hip;
+
+  if(coorX > x) {
+    hip = (PI / 2) + atan(coorX / h) - acos((sq(d) + sq(a) - sq(b)) / (2 * a * d));
+  }else if (coorX < x) {
+    hip = (PI / 2) - atan(coorX / h) - acos((sq(d) + sq(a) - sq(b)) / (2 * a * d));
+  }else if (coorX == x) {
+    hip = (PI / 2) - acos((sq(d) + sq(a) - sq(b)) / (2 * a * d));
+  }
+  // float hip = (PI / 2) + asin(coorX / d) - acos((sq(d) + sq(a) - sq(b)) / (2 * a * d));
   // float hip = (PI/2) + asin(coorX / d) - acos((sq(d) + sq(a) - sq(b)) / (2 * a * d));
   // float hip = (PI/2) + atan(coorX / h);
 
   float hipDeg = hip * RAD_TO_DEG;
   float kneeDeg = knee * RAD_TO_DEG;
 
-  float convHip =hipDeg * 2 / 3; //no need minus 120 kalau kaki right
+  float convHip = hipDeg * 2 / 3; //no need minus 120 kalau kaki right
   // float convHip = 120 - (hipDeg * 2 / 3); //no need minus 120 kalau kaki right
   float convKnee = kneeDeg * 2 / 3;
 
@@ -209,7 +218,7 @@ void generateLegPathLeft() {
 }
 
 void standingLeg() {
-  int midIndex = L / 2;  
+  int midIndex = 6;  
 
   float hipAngle = ANGLE_LEG1S1[midIndex];
   float kneeAngle = ANGLE_LEG1S2[midIndex];
@@ -232,39 +241,39 @@ void standingLeg() {
 }
 
 void moveL2(){
-  for (int i = 3; i <= L; i++) { 
-      // hipRamp.go(ANGLE_LEG2S1[i] + err[1][0], SPEED);   
-      // kneeRamp.go(ANGLE_LEG2S2[i] - err[1][1], SPEED);
-      hipRamp.go(ANGLE_LEG3S1[i] - err[2][0], SPEED);   
-      kneeRamp.go(ANGLE_LEG3S2[i] + err[2][1], SPEED);
+  for (int i = 0; i <= L; i++) { 
+      hipRamp.go(ANGLE_LEG2S1[i] + err[1][0], SPEED);   
+      kneeRamp.go(ANGLE_LEG2S2[i] - err[1][1], SPEED);
+      // hipRamp.go(ANGLE_LEG3S1[i] - err[2][0], SPEED);   
+      // kneeRamp.go(ANGLE_LEG3S2[i] + err[2][1], SPEED);
 
       while (!hipRamp.isFinished() || !kneeRamp.isFinished()) {
         hipRamp.update();
         kneeRamp.update();
 
-        // LEG2S1.write(hipRamp.getValue());
-        // LEG2S2.write(kneeRamp.getValue());
-        LEG3S1.write(hipRamp.getValue());
-        LEG3S2.write(kneeRamp.getValue());
+        LEG2S1.write(hipRamp.getValue());
+        LEG2S2.write(kneeRamp.getValue());
+        // LEG3S1.write(hipRamp.getValue());
+        // LEG3S2.write(kneeRamp.getValue());
     }
   }
 }
 
 void moveBackL2(){
-  for (int i = L ; i >= 3; i--) { 
-      // hipRamp.go(ANGLE_LEG2S1[i] + err[1][0], SPEED2);   
-      // kneeRamp.go(60 - err[1][1], SPEED2);
-      hipRamp.go(ANGLE_LEG3S1[i] - err[2][0], SPEED2);   
-      kneeRamp.go(ANGLE_LEG3S1[i] + err[2][1], SPEED2);
+  for (int i = L ; i >= 0; i--) { 
+      hipRamp.go(ANGLE_LEG2S1[i] + err[1][0], SPEED2);   
+      kneeRamp.go(60 - err[1][1], SPEED2);
+      // hipRamp.go(ANGLE_LEG3S1[i] - err[2][0], SPEED2);   
+      // kneeRamp.go(ANGLE_LEG3S1[i] + err[2][1], SPEED2);
 
       while (!hipRamp.isFinished() || !kneeRamp.isFinished()) {
         hipRamp.update();
         kneeRamp.update();
 
-        // LEG2S1.write(hipRamp.getValue());
-        // LEG2S2.write(kneeRamp.getValue());
-        LEG3S1.write(hipRamp.getValue());
-        LEG3S2.write(kneeRamp.getValue());
+        LEG2S1.write(hipRamp.getValue());
+        LEG2S2.write(kneeRamp.getValue());
+        // LEG3S1.write(hipRamp.getValue());
+        // LEG3S2.write(kneeRamp.getValue());
     }
   }
 }
