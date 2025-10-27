@@ -249,38 +249,48 @@ void standingLeg() {
 
 void moveL2(){
   for (int i = 0; i <= L; i++) { 
-      hipRamp.go(ANGLE_LEG2S1[i] + err[1][0], SPEED);   
-      kneeRamp.go(ANGLE_LEG2S2[i] - err[1][1], SPEED);
-      // hipRamp.go(ANGLE_LEG3S1[i] - err[2][0], SPEED);   
-      // kneeRamp.go(ANGLE_LEG3S2[i] + err[2][1], SPEED);
+    int hipTarget = ANGLE_LEG2S1[i] + err[1][0];
+    int kneeTarget = ANGLE_LEG2S2[i] - err[1][1];
 
-      while (!hipRamp.isFinished() || !kneeRamp.isFinished()) {
-        hipRamp.update();
-        kneeRamp.update();
+    if (i == 10) {
+      kneeTarget += 6; 
+    }
 
-        LEG2S1.write(hipRamp.getValue());
-        LEG2S2.write(kneeRamp.getValue());
-        // LEG3S1.write(hipRamp.getValue());
-        // LEG3S2.write(kneeRamp.getValue());
+    hipRamp.go(hipTarget, SPEED);   
+    kneeRamp.go(kneeTarget, SPEED);
+
+    while (!hipRamp.isFinished() || !kneeRamp.isFinished()) {
+      hipRamp.update();
+      kneeRamp.update();
+
+      LEG2S1.write(hipRamp.getValue());
+      LEG2S2.write(kneeRamp.getValue());
+      // LEG3S1.write(hipRamp.getValue());
+      // LEG3S2.write(kneeRamp.getValue());
     }
   }
 }
 
 void moveBackL2(){
   for (int i = L ; i >= 0; i--) { 
-      hipRamp.go(ANGLE_LEG2S1[i] + err[1][0], SPEED2);   
-      kneeRamp.go(60 - err[1][1], SPEED2);
-      // hipRamp.go(ANGLE_LEG3S1[i] - err[2][0], SPEED2);   
-      // kneeRamp.go(ANGLE_LEG3S1[i] + err[2][1], SPEED2);
+    int hipTarget = ANGLE_LEG2S1[i] + err[1][0];
+    int kneeTarget = 76 - err[1][1];
 
-      while (!hipRamp.isFinished() || !kneeRamp.isFinished()) {
-        hipRamp.update();
-        kneeRamp.update();
+    if (i == 0) {
+      kneeTarget -= 6;
+    }
 
-        LEG2S1.write(hipRamp.getValue());
-        LEG2S2.write(kneeRamp.getValue());
-        // LEG3S1.write(hipRamp.getValue());
-        // LEG3S2.write(kneeRamp.getValue());
+    hipRamp.go(hipTarget, SPEED2);   
+    kneeRamp.go(kneeTarget, SPEED2);
+
+    while (!hipRamp.isFinished() || !kneeRamp.isFinished()) {
+      hipRamp.update();
+      kneeRamp.update();
+
+      LEG2S1.write(hipRamp.getValue());
+      LEG2S2.write(kneeRamp.getValue());
+      // LEG3S1.write(hipRamp.getValue());
+      // LEG3S2.write(kneeRamp.getValue());
     }
   }
 }
