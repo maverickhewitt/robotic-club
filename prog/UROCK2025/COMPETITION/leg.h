@@ -3,16 +3,16 @@
 #include <math.h>
 #include <Ramp.h>
 
-#define LEG1PIN1 10
-#define LEG1PIN2 11
+#define LEG1PIN1 12
+#define LEG1PIN2 27
 
-#define LEG2PIN1 15
-#define LEG2PIN2 26
+#define LEG2PIN1 12
+#define LEG2PIN2 27
 
-#define LEG3PIN1 14
-#define LEG3PIN2 13
+#define LEG3PIN1 12
+#define LEG3PIN2 27
 
-#define LEG4PIN1 12
+#define LEG4PIN1 26
 #define LEG4PIN2 27
 
 #define SERVO_MIN_PULSE 500
@@ -161,8 +161,16 @@ void findAngleLeft(float i, int stepIndex) {
   float d = sqrt(sq(x - coorX) + sq(h - coorY));
 
   float knee = acos((sq(a) + sq(b) - sq(d)) / (2 * a * b));
+  float hip;
+  if(coorX > x) {
+    hip = (PI / 2) + atan(coorX / h) - acos((sq(d) + sq(a) - sq(b)) / (2 * a * d));
+  }else if (coorX < x) {
+    hip = (PI / 2) - atan(coorX / h) - acos((sq(d) + sq(a) - sq(b)) / (2 * a * d));
+  }else if (coorX == x) {
+    hip = (PI / 2) - acos((sq(d) + sq(a) - sq(b)) / (2 * a * d));
+  }
   // float hip = (PI / 2) + asin(coorX / d) - acos((sq(d) + sq(a) - sq(b)) / (2 * a * d));
-  float hip = (PI/2) + asin(coorX / d) - acos((sq(d) + sq(a) - sq(b)) / (2 * a * d));
+  // float hip = (PI/2) + asin(coorX / d) - acos((sq(d) + sq(a) - sq(b)) / (2 * a * d));
   // float hip = (PI/2) + atan(coorX / h);
 
   float hipDeg = hip * RAD_TO_DEG;
@@ -312,7 +320,7 @@ void moveL2(){
 }
 
 void moveBackL2(){
-  for (int i = 9 ; i >= 4; i--) { 
+  for (int i = 9 ; i >= 5; i--) { 
     int hipTarget = ANGLE_LEG2S1[i] + err[1][0];
     int kneeTarget = 74 - err[1][1];
     int hipTarget2 = ANGLE_LEG4S1[i] + err[3][0];
@@ -357,6 +365,178 @@ void moveBackL2(){
   }
 }
 
+void moveL3(){
+  for (int i = 4; i <= L; i++) { 
+    int hipTarget = ANGLE_LEG3S1[i] + err[2][0];
+    int kneeTarget = ANGLE_LEG3S2[i] - err[2][1];
+    int hipTarget2 = ANGLE_LEG1S1[i] + err[0][0];
+    int kneeTarget2 = ANGLE_LEG1S2[i] - err[0][1];
+
+    // if (i == 9) {
+    //   hipTarget = ANGLE_LEG2S1[8] + err[1][0]; 
+    //   hipTarget2 = ANGLE_LEG4S1[8] + err[3][0];
+    // }
+    // if (i == 10) {
+    //   kneeTarget += 14; 
+    //   kneeTarget2 += 14; 
+    // }
+
+    hipRamp.go(hipTarget, SPEED);   
+    kneeRamp.go(kneeTarget, SPEED);
+    hipRamp2.go(hipTarget2, SPEED);   
+    kneeRamp2.go(kneeTarget2, SPEED);
+
+    while (!hipRamp.isFinished() && !hipRamp2.isFinished() || !kneeRamp.isFinished() && !kneeRamp2.isFinished()) {
+      hipRamp.update();
+      kneeRamp.update();
+      hipRamp2.update();
+      kneeRamp2.update();
+
+      LEG3S1.write(hipRamp.getValue());
+      LEG3S2.write(kneeRamp.getValue());
+      LEG1S1.write(hipRamp2.getValue());
+      LEG1S2.write(kneeRamp2.getValue());
+      Serial.print("HIP: ");
+      Serial.println(hipRamp.getValue());
+      // delay(1000);
+      // LEG3S1.write(hipRamp.getValue());
+      // LEG3S2.write(kneeRamp.getValue());
+    }
+  }
+}
+
+void moveBackL3(){
+  for (int i = 9 ; i >= 4; i--) { 
+    int hipTarget = ANGLE_LEG3S1[i] + err[2][0];
+    // int kneeTarget = 74 - err[2][1];
+    int hipTarget2 = ANGLE_LEG1S1[i] + err[0][0];
+    // int kneeTarget2 =  74 - err[0][1];
+
+    // if (i == 9) {
+    //   kneeTarget += 4;
+    //   kneeTarget2 += 4;
+    // }else if (i == 8) {
+    //   kneeTarget += 2;
+    //   kneeTarget2 += 2;
+    // }else if (i == 7) {
+    //   kneeTarget += 2;
+    //   kneeTarget2 += 2;
+    // }else if (i == 6) {
+    //   kneeTarget += 1;
+    //   kneeTarget2 += 1;
+    // }
+    
+
+    hipRamp.go(hipTarget, SPEED2);   
+    // kneeRamp.go(kneeTarget, SPEED2);
+    hipRamp2.go(hipTarget2, SPEED2);   
+    // kneeRamp2.go(kneeTarget2, SPEED2);
+
+    while (!hipRamp.isFinished() && !hipRamp2.isFinished() || !kneeRamp.isFinished() && !kneeRamp2.isFinished()) {
+      hipRamp.update();
+      // kneeRamp.update();
+      hipRamp2.update();
+      // kneeRamp2.update();
+
+      LEG2S1.write(hipRamp.getValue());
+      // LEG2S2.write(kneeRamp.getValue());
+      LEG4S1.write(hipRamp2.getValue());
+      // LEG4S2.write(kneeRamp2.getValue());
+      Serial.print("HIP: ");
+      Serial.println(hipRamp.getValue());
+      // delay(1000);
+      // LEG3S1.write(hipRamp.getValue());
+      // LEG3S2.write(kneeRamp.getValue());
+    }
+  }
+}
+
+void moveL4(){
+   for (int i = 4; i <= L; i++) { 
+    int hipTarget = ANGLE_LEG4S1[i] + err[3][0];
+    int kneeTarget = ANGLE_LEG4S2[i] - err[3][1];
+    int hipTarget2 = ANGLE_LEG2S1[i] + err[1][0];
+    int kneeTarget2 = ANGLE_LEG2S2[i] - err[1][1];
+
+    // if (i == 9) {
+    //   hipTarget = ANGLE_LEG2S1[8] + err[1][0]; 
+    //   hipTarget2 = ANGLE_LEG4S1[8] + err[3][0];
+    // }
+    // if (i == 10) {
+    //   kneeTarget += 14; 
+    //   kneeTarget2 += 14; 
+    // }
+
+    hipRamp.go(hipTarget2, SPEED);   
+    kneeRamp.go(kneeTarget2, SPEED);
+    hipRamp2.go(hipTarget, SPEED);   
+    kneeRamp2.go(kneeTarget, SPEED);
+
+    while (!hipRamp.isFinished() && !hipRamp2.isFinished() || !kneeRamp.isFinished() && !kneeRamp2.isFinished()) {
+      hipRamp.update();
+      kneeRamp.update();
+      hipRamp2.update();
+      kneeRamp2.update();
+
+      LEG2S1.write(hipRamp.getValue());
+      LEG2S2.write(kneeRamp.getValue());
+      LEG4S1.write(hipRamp2.getValue());
+      LEG4S2.write(kneeRamp2.getValue());
+      Serial.print("HIP: ");
+      Serial.println(hipRamp.getValue());
+      // delay(1000);
+      // LEG3S1.write(hipRamp.getValue());
+      // LEG3S2.write(kneeRamp.getValue());
+    }
+  }
+}
+
+void moveBackL4(){
+  for (int i = 9 ; i >= 4; i--) { 
+    int hipTarget = ANGLE_LEG4S1[i] + err[3][0];
+    int kneeTarget = 74 - err[3][1];
+    int hipTarget2 = ANGLE_LEG2S1[i] + err[1][0];
+    int kneeTarget2 =  74 - err[1][1];
+
+    // if (i == 9) {
+    //   kneeTarget += 4;
+    //   kneeTarget2 += 4;
+    // }else if (i == 8) {
+    //   kneeTarget += 2;
+    //   kneeTarget2 += 2;
+    // }else if (i == 7) {
+    //   kneeTarget += 2;
+    //   kneeTarget2 += 2;
+    // }else if (i == 6) {
+    //   kneeTarget += 1;
+    //   kneeTarget2 += 1;
+    // }
+    
+
+    hipRamp.go(hipTarget2, SPEED2);   
+    kneeRamp.go(kneeTarget2, SPEED2);
+    hipRamp2.go(hipTarget, SPEED2);   
+    kneeRamp2.go(kneeTarget, SPEED2);
+
+    while (!hipRamp.isFinished() && !hipRamp2.isFinished() || !kneeRamp.isFinished() && !kneeRamp2.isFinished()) {
+      hipRamp.update();
+      kneeRamp.update();
+      hipRamp2.update();
+      kneeRamp2.update();
+
+      LEG2S1.write(hipRamp.getValue());
+      LEG2S2.write(kneeRamp.getValue());
+      LEG4S1.write(hipRamp2.getValue());
+      LEG4S2.write(kneeRamp2.getValue());
+      Serial.print("HIP: ");
+      Serial.println(hipRamp.getValue());
+      // delay(1000);
+      // LEG3S1.write(hipRamp.getValue());
+      // LEG3S2.write(kneeRamp.getValue());
+    }
+  }
+}
+
 void testWalkCycle(){
   if(Serial.available() > 0){
     int input = Serial.parseInt();
@@ -372,6 +552,28 @@ void testWalkCycle(){
       Serial.print(ANGLE_LEG4S1[input] + err[3][0]);
       Serial.print("  Knee=");
       Serial.println(ANGLE_LEG4S2[input] - err[3][1]);
+    }
+    while(Serial.available() > 0){
+      Serial.read();
+    }
+  }
+}
+
+void testWalkCycleL3(){
+  if(Serial.available() > 0){
+    int input = Serial.parseInt();
+    if (input >= 0 && input <= 20) {
+      // LEG2S1.write(ANGLE_LEG2S1[input] + err[1][0]);
+      // LEG2S2.write(ANGLE_LEG2S2[input] - err[1][1]);
+      LEG3S1.write(ANGLE_LEG3S1[input] + err[2][0]);
+      LEG3S2.write(ANGLE_LEG3S2[input] - err[2][1]);
+
+      Serial.print("Index ");
+      Serial.print(input);
+      Serial.print(": Hip=");
+      Serial.print(ANGLE_LEG3S1[input] + err[2][0]);
+      Serial.print("  Knee=");
+      Serial.println(ANGLE_LEG3S2[input] - err[2][1]);
     }
     while(Serial.available() > 0){
       Serial.read();
