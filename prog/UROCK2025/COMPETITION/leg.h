@@ -43,6 +43,13 @@ float ANGLE_LEG1S2[ARRAY_NO];
 
 int ANGLE_LEG2S1[ARRAY_NO];
 int ANGLE_LEG2S2[ARRAY_NO];
+int BACK_ANGLE_LEG2S1[ARRAY_NO];
+int BACK_ANGLE_LEG2S2[ARRAY_NO];
+
+int SECANGLE_LEG2S1[3] = {27,32,55};
+int SECANGLE_LEG2S2[3] = {64,51,78};
+int SECBACK_ANGLE_LEG2S1[3] = {55,37,27};
+int SECBACK_ANGLE_LEG2S2[3] = {78,64,64};
 
 int ANGLE_LEG3S1[ARRAY_NO];
 int ANGLE_LEG3S2[ARRAY_NO];
@@ -278,51 +285,25 @@ void moveBackL2(){
   }
 }
 
-// void moveForwardLeg(ServoEasing &hip, ServoEasing &knee, float *hipAngles, float *kneeAngles, int legID) {
-//   for (int i = 3; i <= L; i++) {
-//     hipRamp.go(hipAngles[i] + err[legID][0], SPEED);
-//     kneeRamp.go(kneeAngles[i] - err[legID][1], SPEED);
+void testWalkCycle(){
+  if(Serial.available() > 0){
+    int input = Serial.parseInt();
+    if (input >= 0 && input <= 10) {
+      LEG2S1.write(ANGLE_LEG2S1[input] + err[1][0]);
+      LEG2S2.write(ANGLE_LEG2S2[input] - err[1][1]);
 
-//     while (!hipRamp.isFinished() || !kneeRamp.isFinished()) {
-//       hipRamp.update();
-//       kneeRamp.update();
-//       hip.write(hipRamp.getValue());
-//       knee.write(kneeRamp.getValue());
-//     }
-//   }
-// }
-
-// void moveBackwardLeg(ServoEasing &hip, ServoEasing &knee, float *hipAngles, float *kneeAngles, int legID) {
-//   for (int i = L; i >= 3; i--) {
-//     hipRamp.go(hipAngles[i] + err[legID][0], SPEED2);
-//     kneeRamp.go(hipAngles[i] - err[legID][1], SPEED2);
-
-//     while (!hipRamp.isFinished() || !kneeRamp.isFinished()) {
-//       hipRamp.update();
-//       kneeRamp.update();
-//       hip.write(hipRamp.getValue());
-//       knee.write(kneeRamp.getValue());
-//     }
-//   }
-// }
-
-// void tasuWalkCycle() {
-//   // L1 + L4 move forward
-//   moveForwardLeg(LEG1S1, LEG1S2, ANGLE_LEG1S1, ANGLE_LEG1S2, 0);
-//   moveForwardLeg(LEG4S1, LEG4S2, ANGLE_LEG4S1, ANGLE_LEG4S2, 3);
-
-//   // L2 + L3 push back 
-//   moveBackwardLeg(LEG2S1, LEG2S2, ANGLE_LEG2S1, ANGLE_LEG2S2, 1);
-//   moveBackwardLeg(LEG3S1, LEG3S2, ANGLE_LEG3S1, ANGLE_LEG3S2, 2);
-
-//   // L2 + L3 swing forward
-//   moveForwardLeg(LEG2S1, LEG2S2, ANGLE_LEG2S1, ANGLE_LEG2S2, 1);
-//   moveForwardLeg(LEG3S1, LEG3S2, ANGLE_LEG3S1, ANGLE_LEG3S2, 2);
-
-//   // L1 + L4 push back
-//   moveBackwardLeg(LEG1S1, LEG1S2, ANGLE_LEG1S1, ANGLE_LEG1S2, 0);
-//   moveBackwardLeg(LEG4S1, LEG4S2, ANGLE_LEG4S1, ANGLE_LEG4S2, 3);
-// }
+      Serial.print("Index ");
+      Serial.print(input);
+      Serial.print(": Hip=");
+      Serial.print(ANGLE_LEG2S1[input] + err[1][0]);
+      Serial.print("  Knee=");
+      Serial.println(ANGLE_LEG2S2[input] - err[1][1]);
+    }
+    while(Serial.available() > 0){
+      Serial.read();
+    }
+  }
+}
 
 
 void settingServo(){
@@ -334,11 +315,15 @@ void settingServo(){
       LEG3S1.write(input);
       LEG4S1.write(input);
       LEG1S1.write(input);
+      Serial.print("Hip:");
+      Serial.println(input);
     }else if(ch == 'b'){
       LEG2S2.write(input);
       LEG1S2.write(input);
       LEG4S2.write(input);
       LEG3S2.write(input);
+      Serial.print("Knee:");
+      Serial.println(input);
     }
     while(Serial.available() > 0){
       Serial.read();
