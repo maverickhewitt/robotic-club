@@ -3,13 +3,13 @@
 #include <math.h>
 #include <Ramp.h>
 
-#define LEG1PIN1 12
+#define LEG1PIN1 26
 #define LEG1PIN2 27
 
-#define LEG2PIN1 12
+#define LEG2PIN1 26
 #define LEG2PIN2 27
 
-#define LEG3PIN1 12
+#define LEG3PIN1 26
 #define LEG3PIN2 27
 
 #define LEG4PIN1 26
@@ -38,6 +38,7 @@ float a = 15.0;
 float b = 17.0;
 float h = 25.0;
 float L = 10.0;
+float L2 = -10.0;
 float x = 5.0;
 float H = 5.0;
 float H_LOW = -2.0;
@@ -152,10 +153,10 @@ float bezierQuadratic(float p0, float p1, float p2, float t) {
 
 
 void findAngleLeft(float i, int stepIndex) {   
-  float t = (float)i / L;
+  float t = (float)i / L2 ;
   // float coorX = bezierQuadratic(x0, x1, x2, t);
   // float coorY = bezierQuadratic(y0, y1, y2, t);
-  float coorX = L * (t - (sin(2 * PI * t) / (2 * PI)));
+  float coorX = L2 * (t - (sin(2 * PI * t) / (2 * PI)));
   float coorY = (H / 2) * (1 - cos(2 * PI * t));
 
   float d = sqrt(sq(x - coorX) + sq(h - coorY));
