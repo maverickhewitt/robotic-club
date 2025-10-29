@@ -4,24 +4,15 @@ void setup() {
   Serial.begin(115200);
   setupLeg();
   // setupGyro();
-  // standingLeg(); 
-  generateLegPathLeft();
-  // generateLegPathRight();
+  generateLegAngle();
+  delay(200);
+  standingLeg(); 
+  delay(200);
+  readyMove();
+  delay(200);
 }
 
 void loop() {
-  // generateLegPath();
-  // generateLegPathRight();
-  // moveAll();
-  // standingLeg();
-  // generateLegPathLeft();
-  // moveL1Left();
-  // generateLegPath();
-  // moveBackwardL1();
-  // moveL1();
-  moveL2();
-  moveBackL2();
-  // settingServo();
-  // delay(500);
+  moveCycle();
 }
 
