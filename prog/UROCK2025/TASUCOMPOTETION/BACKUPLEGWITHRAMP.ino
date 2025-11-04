@@ -15,6 +15,8 @@
 #define SLR_PIN 21
 
 #define SPEED 60
+#define JUMPSPEED 20
+#define RAMPSPEED 150
 #define STOMPSPEED 180
 #define READYSPEED 500
 #define SERVO_MIN_PULSE 500
@@ -51,11 +53,11 @@ const float L1 = 130.0;
 const float L2 = 195.0;
 const float DistanceBetweenServo = 34.8;
 const float ground_offset = 200.0;
-const float ground_offset_ramp = ground_offset + RAMPGROUNDOFFSET;
+const float ground_offset_ramp = ground_offset - RAMPGROUNDOFFSET;
 
 const float step_length = 90;
 const float step_height = 50;
-const float step_height_ramp = step_height + RAMPHEIGHTOFFSET;
+const float step_height_ramp = step_height;
 
 float delta_t = 0.2;  //the best fast 0.4 0.3 slow but clear
 
@@ -128,7 +130,7 @@ float yZeroRAMP = ground_offset_ramp;
 // float xOne = (34.8/2);
 float xOne = 0;
 float yOne = ground_offset - 2 * step_height;
-float yOneRAMP = ground_offset_ramp - 2 * step_height_ramp;
+float yOneRAMP = ground_offset_ramp - 2 * step_height;
 
 // float xTwo = step_length / 2 - (34.8/2);
 float xTwo = step_length / 2;
@@ -524,8 +526,8 @@ void leg_i_ramp() {  //and j
     RAMP_I_LA[index] = angles.left;
     RAMP_I_RA[index] = angles.right;
 
-    RAMP_J_LA[index] = angles.left;
-    RAMP_J_RA[index] = angles.right;
+    // RAMP_J_LA[index] = angles.left;
+    // RAMP_J_RA[index] = angles.right;
     
     index++;
   }
@@ -538,6 +540,38 @@ void leg_i_ramp() {  //and j
     ServoAngles angles = IK_ThetaAngle(x, y);
     RAMP_I_LA[index] = angles.left;
     RAMP_I_RA[index] = angles.right;
+
+    // RAMP_J_LA[index] = angles.left;
+    // RAMP_J_RA[index] = angles.right;
+    index++;
+  }
+}
+
+void leg_j_ramp() {  //and j
+  float t;
+  int index = 0;
+
+  // 🟢 Air phase (foot up and forward)
+  for (t = 0; t <= 1; t += delta_t) {
+    Serial.print("INDEX: ");
+    Serial.println(index);
+    x = bezierQuadratic(xZeroIJ, xOne, xTwoIJ, t);
+    y = bezierQuadratic(yZeroRAMP, yOneRAMP, yTwoRAMP, t);
+
+    ServoAngles angles = IK_ThetaAngle(x, y);
+
+    RAMP_J_LA[index] = angles.left;
+    RAMP_J_RA[index] = angles.right;
+    
+    index++;
+  }
+
+  // 🔵 Ground phase (foot back and flat)
+  for (t = 0; t <= 1; t += delta_t) {
+    x = xTwoIJ - t * (step_length + IJOFFSET);
+    y = ground_offset_ramp;
+
+    ServoAngles angles = IK_ThetaAngle(x, y);
 
     RAMP_J_LA[index] = angles.left;
     RAMP_J_RA[index] = angles.right;
@@ -802,8 +836,273 @@ void stompLeg60() {
   // delay(STOMPSPEED);
 }
 
-void stompEachLeg() {
-  
+void stompRamp() {
+  int LIFT_SPEED = STOMPSPEED;   
+  int DROP_SPEED = STOMPSPEED;       
+  // int DROP_SPEED = STOMPSPEED / 2;       
+
+  LSRamp.go(SIL.read(), LIFT_SPEED);
+  RSRamp.go(SIR.read(), LIFT_SPEED);
+  LSRamp2.go(SKL.read(), LIFT_SPEED);
+  RSRamp2.go(SKR.read(), LIFT_SPEED);
+  LSRamp3.go(SJL.read(), LIFT_SPEED);
+  RSRamp3.go(SJR.read(), LIFT_SPEED);
+  LSRamp4.go(SLL.read(), LIFT_SPEED);
+  RSRamp4.go(SLR.read(), LIFT_SPEED);
+
+  float leftTarget_I = INIT + err[0][0];
+  float rightTarget_I = INIT2 + err[0][1];
+
+  float leftTarget_K = INIT + err[2][0];
+  float rightTarget_K = INIT2 + err[2][1];
+
+  float leftTarget_J = LIFTLEG + err[1][0];  
+  float rightTarget_J = LIFTLEG2 + err[1][1];
+
+  float leftTarget_L = LIFTLEG_L + err[3][0];
+  float rightTarget_L = LIFTLEG_L + err[3][1];
+
+  LSRamp.go(leftTarget_I, DROP_SPEED);
+  RSRamp.go(rightTarget_I, DROP_SPEED);
+  LSRamp2.go(leftTarget_K, DROP_SPEED);
+  RSRamp2.go(rightTarget_K, DROP_SPEED);
+  LSRamp3.go(leftTarget_J, LIFT_SPEED);
+  RSRamp3.go(rightTarget_J, LIFT_SPEED);
+  LSRamp4.go(leftTarget_L, LIFT_SPEED);
+  RSRamp4.go(rightTarget_L, LIFT_SPEED);
+
+  while (
+    !LSRamp.isFinished() || !RSRamp.isFinished() ||
+    !LSRamp2.isFinished() || !RSRamp2.isFinished() ||
+    !LSRamp3.isFinished() || !RSRamp3.isFinished() ||
+    !LSRamp4.isFinished() || !RSRamp4.isFinished()
+  ) {
+    LSRamp.update(); RSRamp.update();
+    LSRamp2.update(); RSRamp2.update();
+    LSRamp3.update(); RSRamp3.update();
+    LSRamp4.update(); RSRamp4.update();
+
+    SIL.write(LSRamp.getValue());
+    SIR.write(RSRamp.getValue());
+    SKL.write(LSRamp2.getValue());
+    SKR.write(RSRamp2.getValue());
+    SJL.write(LSRamp3.getValue());
+    SJR.write(RSRamp3.getValue());
+    SLL.write(LSRamp4.getValue());
+    SLR.write(RSRamp4.getValue());
+  }
+
+  // delay(STOMPSPEED); 
+
+  leftTarget_I = LIFTLEG + err[0][0];
+  rightTarget_I = LIFTLEG2 + err[0][1];
+
+  leftTarget_K = LIFTLEG + err[2][0];
+  rightTarget_K = LIFTLEG2 + err[2][1];
+
+  leftTarget_J = INIT + err[1][0];
+  rightTarget_J = INIT2 + err[1][1];
+
+  leftTarget_L = INIT180 + err[3][0];
+  rightTarget_L = INIT1802 + err[3][1];
+
+  LSRamp.go(leftTarget_I, LIFT_SPEED);
+  RSRamp.go(rightTarget_I, LIFT_SPEED);
+  LSRamp2.go(leftTarget_K, LIFT_SPEED);
+  RSRamp2.go(rightTarget_K, LIFT_SPEED);
+  LSRamp3.go(leftTarget_J, DROP_SPEED);
+  RSRamp3.go(rightTarget_J, DROP_SPEED);
+  LSRamp4.go(leftTarget_L, DROP_SPEED);
+  RSRamp4.go(rightTarget_L, DROP_SPEED);
+
+  while (
+    !LSRamp.isFinished() || !RSRamp.isFinished() ||
+    !LSRamp2.isFinished() || !RSRamp2.isFinished() ||
+    !LSRamp3.isFinished() || !RSRamp3.isFinished() ||
+    !LSRamp4.isFinished() || !RSRamp4.isFinished()
+  ) {
+    LSRamp.update(); RSRamp.update();
+    LSRamp2.update(); RSRamp2.update();
+    LSRamp3.update(); RSRamp3.update();
+    LSRamp4.update(); RSRamp4.update();
+
+    SIL.write(LSRamp.getValue());
+    SIR.write(RSRamp.getValue());
+    SKL.write(LSRamp2.getValue());
+    SKR.write(RSRamp2.getValue());
+    SJL.write(LSRamp3.getValue());
+    SJR.write(RSRamp3.getValue());
+    SLL.write(LSRamp4.getValue());
+    SLR.write(RSRamp4.getValue());
+  }
+}
+
+void jump() {
+  int LIFT_SPEED = JUMPSPEED;   
+  int DROP_SPEED = JUMPSPEED * 8;       
+  // int DROP_SPEED = STOMPSPEED / 2;       
+
+  LSRamp.go(SIL.read(), LIFT_SPEED);
+  RSRamp.go(SIR.read(), LIFT_SPEED);
+  LSRamp2.go(SKL.read(), LIFT_SPEED);
+  RSRamp2.go(SKR.read(), LIFT_SPEED);
+  LSRamp3.go(SJL.read(), LIFT_SPEED);
+  RSRamp3.go(SJR.read(), LIFT_SPEED);
+  LSRamp4.go(SLL.read(), LIFT_SPEED);
+  RSRamp4.go(SLR.read(), LIFT_SPEED);
+
+  float leftTarget_I = INIT + err[0][0];
+  float rightTarget_I = INIT2 + err[0][1];
+
+  float leftTarget_K = INIT + err[2][0];
+  float rightTarget_K = INIT2 + err[2][1];
+
+  float leftTarget_J = INIT + err[1][0];
+  float rightTarget_J = INIT2 + err[1][1];
+
+  float leftTarget_L = INIT180 + err[3][0];
+  float rightTarget_L = INIT1802 + err[3][1];
+
+  LSRamp.go(leftTarget_I, DROP_SPEED);
+  RSRamp.go(rightTarget_I, DROP_SPEED);
+  LSRamp2.go(leftTarget_K, DROP_SPEED);
+  RSRamp2.go(rightTarget_K, DROP_SPEED);
+  LSRamp3.go(leftTarget_J, DROP_SPEED);
+  RSRamp3.go(rightTarget_J, DROP_SPEED);
+  LSRamp4.go(leftTarget_L, DROP_SPEED);
+  RSRamp4.go(rightTarget_L, DROP_SPEED);
+
+  while (
+    !LSRamp.isFinished() || !RSRamp.isFinished() ||
+    !LSRamp2.isFinished() || !RSRamp2.isFinished() ||
+    !LSRamp3.isFinished() || !RSRamp3.isFinished() ||
+    !LSRamp4.isFinished() || !RSRamp4.isFinished()
+  ) {
+    LSRamp.update(); RSRamp.update();
+    LSRamp2.update(); RSRamp2.update();
+    LSRamp3.update(); RSRamp3.update();
+    LSRamp4.update(); RSRamp4.update();
+
+    SIL.write(LSRamp.getValue());
+    SIR.write(RSRamp.getValue());
+    SKL.write(LSRamp2.getValue());
+    SKR.write(RSRamp2.getValue());
+    SJL.write(LSRamp3.getValue());
+    SJR.write(RSRamp3.getValue());
+    SLL.write(LSRamp4.getValue());
+    SLR.write(RSRamp4.getValue());
+  }
+
+  // delay(STOMPSPEED); 
+
+  leftTarget_I = 60 + err[0][0];
+  rightTarget_I = 60 + err[0][1];
+
+  leftTarget_K = 60 + err[2][0];
+  rightTarget_K = 60 + err[2][1];
+
+  leftTarget_J = 60 + err[1][0];  
+  rightTarget_J = 60 + err[1][1];
+
+  leftTarget_L = 90 + err[3][0];
+  rightTarget_L = 90 + err[3][1];
+
+  LSRamp.go(leftTarget_I, DROP_SPEED);
+  RSRamp.go(rightTarget_I, DROP_SPEED);
+  LSRamp2.go(leftTarget_K, DROP_SPEED);
+  RSRamp2.go(rightTarget_K, DROP_SPEED);
+  LSRamp3.go(leftTarget_J, DROP_SPEED);
+  RSRamp3.go(rightTarget_J, DROP_SPEED);
+  LSRamp4.go(leftTarget_L, DROP_SPEED);
+  RSRamp4.go(rightTarget_L, DROP_SPEED);
+
+  while (
+    !LSRamp.isFinished() || !RSRamp.isFinished() ||
+    !LSRamp2.isFinished() || !RSRamp2.isFinished() ||
+    !LSRamp3.isFinished() || !RSRamp3.isFinished() ||
+    !LSRamp4.isFinished() || !RSRamp4.isFinished()
+  ) {
+    LSRamp.update(); RSRamp.update();
+    LSRamp2.update(); RSRamp2.update();
+    LSRamp3.update(); RSRamp3.update();
+    LSRamp4.update(); RSRamp4.update();
+
+    SIL.write(LSRamp.getValue());
+    SIR.write(RSRamp.getValue());
+    SKL.write(LSRamp2.getValue());
+    SKR.write(RSRamp2.getValue());
+    SJL.write(LSRamp3.getValue());
+    SJR.write(RSRamp3.getValue());
+    SLL.write(LSRamp4.getValue());
+    SLR.write(RSRamp4.getValue());
+  }
+
+  delay(200);
+
+  leftTarget_I = LIFTLEG + err[0][0];
+  rightTarget_I = LIFTLEG2 + err[0][1];
+
+  leftTarget_K = LIFTLEG + err[2][0];
+  rightTarget_K = LIFTLEG2 + err[2][1];
+
+  leftTarget_J = LIFTLEG + err[1][0];  
+  rightTarget_J = LIFTLEG2 + err[1][1];
+
+  leftTarget_L = LIFTLEG_L + err[3][0];
+  rightTarget_L = LIFTLEG_L + err[3][1];
+
+  SIL.write(leftTarget_I);
+  SIR.write(rightTarget_I);
+  SKL.write(leftTarget_K);
+  SKR.write(rightTarget_K);
+  SJL.write(leftTarget_J);
+  SJR.write(rightTarget_J );
+  SLL.write(leftTarget_L);
+  SLR.write(rightTarget_L);
+
+  leftTarget_I = 60 + err[0][0];
+  rightTarget_I = 60 + err[0][1];
+
+  leftTarget_K = 60 + err[2][0];
+  rightTarget_K = 60 + err[2][1];
+
+  leftTarget_J = 60 + err[1][0];  
+  rightTarget_J = 60 + err[1][1];
+
+  leftTarget_L = 90 + err[3][0];
+  rightTarget_L = 90 + err[3][1];
+
+  LSRamp.go(leftTarget_I, DROP_SPEED);
+  RSRamp.go(rightTarget_I, DROP_SPEED);
+  LSRamp2.go(leftTarget_K, DROP_SPEED);
+  RSRamp2.go(rightTarget_K, DROP_SPEED);
+  LSRamp3.go(leftTarget_J, DROP_SPEED);
+  RSRamp3.go(rightTarget_J, DROP_SPEED);
+  LSRamp4.go(leftTarget_L, DROP_SPEED);
+  RSRamp4.go(rightTarget_L, DROP_SPEED);
+
+  while (
+    !LSRamp.isFinished() || !RSRamp.isFinished() ||
+    !LSRamp2.isFinished() || !RSRamp2.isFinished() ||
+    !LSRamp3.isFinished() || !RSRamp3.isFinished() ||
+    !LSRamp4.isFinished() || !RSRamp4.isFinished()
+  ) {
+    LSRamp.update(); RSRamp.update();
+    LSRamp2.update(); RSRamp2.update();
+    LSRamp3.update(); RSRamp3.update();
+    LSRamp4.update(); RSRamp4.update();
+
+    SIL.write(LSRamp.getValue());
+    SIR.write(RSRamp.getValue());
+    SKL.write(LSRamp2.getValue());
+    SKR.write(RSRamp2.getValue());
+    SJL.write(LSRamp3.getValue());
+    SJR.write(RSRamp3.getValue());
+    SLL.write(LSRamp4.getValue());
+    SLR.write(RSRamp4.getValue());
+  }
+
+  // delay(STOMPSPEED);
 }
 
 void stompLeg() {
@@ -997,6 +1296,94 @@ void firstStep(){
   }
 }
 
+void firstStepRamp(){
+  int count = 6;
+  int SPEED_FOWARD = SPEED * 4;
+  while(flag){
+  LSRamp.go(SIL.read(), SPEED);
+  RSRamp.go(SIR.read(), SPEED);
+  LSRamp2.go(SKL.read(), SPEED);
+  RSRamp2.go(SKR.read(), SPEED);
+  LSRamp3.go(SJL.read(), SPEED);
+  RSRamp3.go(SJR.read(), SPEED);
+  LSRamp4.go(SLL.read(), SPEED);
+  RSRamp4.go(SLR.read(), SPEED);
+
+  for (int i = 3; i < maxSteps; i++) {
+    if(i == 11){
+      flag = false;
+    }
+    float leftTarget_J;
+    float rightTarget_J;
+    float leftTarget_L;
+    float rightTarget_L;
+
+    float leftTarget_I = RAMP_I_LA[i] + err[0][0];
+    float rightTarget_I = RAMP_I_RA[i] + err[0][1];
+
+    float leftTarget_K = RAMP_K_LA[i] + err[2][0];
+    float rightTarget_K = RAMP_K_RA[i] + err[2][1];
+
+    if(i < 6){
+      leftTarget_J = RAMP_J_LA[i + count] + err[1][0];
+      rightTarget_J = RAMP_J_RA[i + count] + err[1][1];
+
+      leftTarget_L = RAMP_L_LA[i + count] + err[3][0];
+      rightTarget_L = RAMP_L_RA[i + count] + err[3][1];
+
+      LSRamp.go(leftTarget_I, SPEED_FOWARD);
+      RSRamp.go(rightTarget_I, SPEED_FOWARD);
+      LSRamp2.go(leftTarget_K, SPEED_FOWARD);
+      RSRamp2.go(rightTarget_K, SPEED_FOWARD);
+
+      LSRamp3.go(leftTarget_J, SPEED);
+      RSRamp3.go(rightTarget_J, SPEED);
+      LSRamp4.go(leftTarget_L, SPEED);
+      RSRamp4.go(rightTarget_L, SPEED);
+    } else{
+      leftTarget_J = RAMP_J_LA[i - 6] + err[1][0];
+      rightTarget_J = RAMP_J_RA[i -  6] + err[1][1];
+
+      leftTarget_L = RAMP_L_LA[i - 6] + err[3][0];
+      rightTarget_L = RAMP_L_RA[i - 6] + err[3][1];
+
+      LSRamp.go(leftTarget_I, SPEED);
+      RSRamp.go(rightTarget_I, SPEED);
+      LSRamp2.go(leftTarget_K, SPEED);
+      RSRamp2.go(rightTarget_K, SPEED);
+
+      LSRamp3.go(leftTarget_J, SPEED_FOWARD);
+      RSRamp3.go(rightTarget_J, SPEED_FOWARD);
+      LSRamp4.go(leftTarget_L, SPEED_FOWARD);
+      RSRamp4.go(rightTarget_L, SPEED_FOWARD);
+    }
+
+    while (
+      !LSRamp.isFinished() || !RSRamp.isFinished() || !LSRamp2.isFinished() || !RSRamp2.isFinished() || !LSRamp3.isFinished() || !RSRamp3.isFinished() || !LSRamp4.isFinished() || !RSRamp4.isFinished()) {
+
+      LSRamp.update();
+      RSRamp.update();
+      LSRamp2.update();
+      RSRamp2.update();
+      LSRamp3.update();
+      RSRamp3.update();
+      LSRamp4.update();
+      RSRamp4.update();
+
+      SIL.write(LSRamp.getValue());
+      SIR.write(RSRamp.getValue());
+      SKL.write(LSRamp2.getValue());
+      SKR.write(RSRamp2.getValue());
+      
+      SJL.write(LSRamp3.getValue());
+      SJR.write(RSRamp3.getValue());
+      SLL.write(LSRamp4.getValue());
+      SLR.write(RSRamp4.getValue());
+    }
+  }
+  }
+}
+
 void moveAll(){
   bool isReady = false; 
   int count = 5;
@@ -1045,6 +1432,91 @@ void moveAll(){
 
       leftTarget_L = L_LA[i - 7] + err[3][0];
       rightTarget_L = L_RA[i - 7] + err[3][1];
+
+      LSRamp.go(leftTarget_I, SPEED);
+      RSRamp.go(rightTarget_I, SPEED);
+      LSRamp2.go(leftTarget_K, SPEED);
+      RSRamp2.go(rightTarget_K, SPEED);
+
+      LSRamp3.go(leftTarget_J, SPEED_FOWARD);
+      RSRamp3.go(rightTarget_J, SPEED_FOWARD);
+      LSRamp4.go(leftTarget_L, SPEED_FOWARD);
+      RSRamp4.go(rightTarget_L, SPEED_FOWARD);
+    }
+
+    while (
+      !LSRamp.isFinished() || !RSRamp.isFinished() || !LSRamp2.isFinished() || !RSRamp2.isFinished() || !LSRamp3.isFinished() || !RSRamp3.isFinished() || !LSRamp4.isFinished() || !RSRamp4.isFinished()) {
+
+      LSRamp.update();
+      RSRamp.update();
+      LSRamp2.update();
+      RSRamp2.update();
+      LSRamp3.update();
+      RSRamp3.update();
+      LSRamp4.update();
+      RSRamp4.update();
+
+      SIL.write(LSRamp.getValue());
+      SIR.write(RSRamp.getValue());
+      SKL.write(LSRamp2.getValue());
+      SKR.write(RSRamp2.getValue());
+
+      SJL.write(LSRamp3.getValue());
+      SJR.write(RSRamp3.getValue());
+      SLL.write(LSRamp4.getValue());
+      SLR.write(RSRamp4.getValue());
+    }
+  }
+}
+
+void moveAllLow(){
+  bool isReady = false; 
+  int count = 5;
+  int SPEED_FOWARD = SPEED / 4;
+  int SPEED_SLOW = SPEED * 2;
+  // LSRamp.go(SIL.read(), SPEED);
+  // RSRamp.go(SIR.read(), SPEED);
+  // LSRamp2.go(SKL.read(), SPEED_SLOW);
+  // RSRamp2.go(SKR.read(), SPEED_SLOW);
+  // LSRamp3.go(SJL.read(), SPEED);
+  // RSRamp3.go(SJR.read(), SPEED);
+  // LSRamp4.go(SLL.read(), SPEED);
+  // RSRamp4.go(SLR.read(), SPEED);
+
+  for (int i = 0; i < maxSteps; i++) {
+    float leftTarget_J;
+    float rightTarget_J;
+    float leftTarget_L;
+    float rightTarget_L;
+
+    float leftTarget_I = RAMP_I_LA[i] + err[0][0];
+    float rightTarget_I = RAMP_I_RA[i] + err[0][1];
+
+    float leftTarget_K = RAMP_K_LA[i] + err[2][0];
+    float rightTarget_K = RAMP_K_RA[i] + err[2][1];
+
+    if(i < 7){
+      leftTarget_J = RAMP_J_LA[i + count] + err[1][0];
+      rightTarget_J = RAMP_J_RA[i + count] + err[1][1];
+
+      leftTarget_L = RAMP_L_LA[i + count] + err[3][0];
+      rightTarget_L = RAMP_L_RA[i + count] + err[3][1];
+
+      LSRamp.go(leftTarget_I, SPEED_FOWARD);
+      RSRamp.go(rightTarget_I, SPEED_FOWARD);
+      LSRamp2.go(leftTarget_K, SPEED);
+      RSRamp2.go(rightTarget_K, SPEED);
+
+      LSRamp3.go(leftTarget_J, SPEED_FOWARD);
+      RSRamp3.go(rightTarget_J, SPEED_FOWARD);
+      LSRamp4.go(leftTarget_L, SPEED);
+      RSRamp4.go(rightTarget_L, SPEED);
+    } else{
+      leftTarget_J = RAMP_J_LA[i - 7] + err[1][0];
+      rightTarget_J = RAMP_J_RA[i -  7] + err[1][1];
+
+      leftTarget_L = RAMP_L_LA[i - 7] + err[3][0];
+      rightTarget_L = RAMP_L_RA[i - 7] + err[3][1];
 
       LSRamp.go(leftTarget_I, SPEED);
       RSRamp.go(rightTarget_I, SPEED);
@@ -1462,15 +1934,15 @@ void move_I(){
 }
 
 void move_I_RAMP(){
-  LSRamp.go(SIL.read(), SPEED);
-  RSRamp.go(SIR.read(), SPEED);
+  LSRamp.go(SIL.read(), RAMPSPEED);
+  RSRamp.go(SIR.read(), RAMPSPEED);
 
   for (int i = 0; i < 6; i++) {
     float leftTarget = RAMP_I_LA[i] + err[0][0];
     float rightTarget = RAMP_I_RA[i] + err[0][1];
 
-    LSRamp.go(leftTarget, SPEED);
-    RSRamp.go(rightTarget, SPEED);
+    LSRamp.go(leftTarget, RAMPSPEED);
+    RSRamp.go(rightTarget, RAMPSPEED);
 
     while (!LSRamp.isFinished() || !RSRamp.isFinished()) {
       LSRamp.update();
@@ -1508,15 +1980,15 @@ void move_J(){
 }
 
 void move_J_RAMP(){
-  LSRamp2.go(SJL.read(), SPEED);
-  RSRamp2.go(SJR.read(), SPEED);
+  LSRamp2.go(SJL.read(), RAMPSPEED);
+  RSRamp2.go(SJR.read(), RAMPSPEED);
 
   for (int i = 0; i < 6; i++) {
     float leftTarget = RAMP_J_LA[i] + err[1][0];
     float rightTarget = RAMP_J_RA[i] + err[1][1];
 
-    LSRamp2.go(leftTarget, SPEED);
-    RSRamp2.go(rightTarget, SPEED);
+    LSRamp2.go(leftTarget, RAMPSPEED);
+    RSRamp2.go(rightTarget, RAMPSPEED);
 
     while (!LSRamp2.isFinished() || !RSRamp2.isFinished()) {
       LSRamp2.update();
@@ -1552,15 +2024,15 @@ void move_K() {
 }
 
 void move_K_RAMP() {
-  LSRamp3.go(SKL.read(), SPEED);
-  RSRamp3.go(SKR.read(), SPEED);
+  LSRamp3.go(SKL.read(), RAMPSPEED);
+  RSRamp3.go(SKR.read(), RAMPSPEED);
 
   for (int i = 0; i < 6; i++) {
     float leftTarget = RAMP_K_LA[i] + err[2][0];
     float rightTarget = RAMP_K_RA[i] + err[2][1];
 
-    LSRamp3.go(leftTarget, SPEED);
-    RSRamp3.go(rightTarget, SPEED);
+    LSRamp3.go(leftTarget, RAMPSPEED);
+    RSRamp3.go(rightTarget, RAMPSPEED);
 
     while (!LSRamp3.isFinished() || !RSRamp3.isFinished()) {
       LSRamp3.update();
@@ -1594,15 +2066,15 @@ void move_L() {
 }
 
 void move_L_RAMP() {
-  LSRamp4.go(SLL.read(), SPEED);
-  RSRamp4.go(SLR.read(), SPEED);
+  LSRamp4.go(SLL.read(), RAMPSPEED);
+  RSRamp4.go(SLR.read(), RAMPSPEED);
 
   for (int i = 0; i < 6; i++) {
     float leftTarget = RAMP_L_LA[i] + err[3][0];
     float rightTarget = RAMP_L_RA[i] + err[3][1];
 
-    LSRamp4.go(leftTarget, SPEED);
-    RSRamp4.go(rightTarget, SPEED);
+    LSRamp4.go(leftTarget, RAMPSPEED);
+    RSRamp4.go(rightTarget, RAMPSPEED);
 
     while (!LSRamp4.isFinished() || !RSRamp4.isFinished()) {
       LSRamp4.update();
@@ -1615,10 +2087,6 @@ void move_L_RAMP() {
 }
 
 void moveBackRamp(){
-  bool isReady = false; 
-  int SPEED_FOWARD = SPEED;
-  int SPEED_SLOW = SPEED;
-
   for (int i = 6; i < maxSteps; i++) {
     float leftTarget_J;
     float rightTarget_J;
@@ -1637,15 +2105,15 @@ void moveBackRamp(){
     leftTarget_L = RAMP_L_LA[i] + err[3][0];
     rightTarget_L = RAMP_L_RA[i] + err[3][1];
 
-    LSRamp.go(leftTarget_I, SPEED_FOWARD);
-    RSRamp.go(rightTarget_I, SPEED_FOWARD);
-    LSRamp2.go(leftTarget_K, SPEED);
-    RSRamp2.go(rightTarget_K, SPEED);
+    LSRamp.go(leftTarget_I, RAMPSPEED);
+    RSRamp.go(rightTarget_I, RAMPSPEED);
+    LSRamp2.go(leftTarget_K, RAMPSPEED);
+    RSRamp2.go(rightTarget_K, RAMPSPEED);
 
-    LSRamp3.go(leftTarget_J, SPEED_FOWARD);
-    RSRamp3.go(rightTarget_J, SPEED_FOWARD);
-    LSRamp4.go(leftTarget_L, SPEED);
-    RSRamp4.go(rightTarget_L, SPEED);
+    LSRamp3.go(leftTarget_J, RAMPSPEED);
+    RSRamp3.go(rightTarget_J, RAMPSPEED);
+    LSRamp4.go(leftTarget_L, RAMPSPEED);
+    RSRamp4.go(rightTarget_L, RAMPSPEED);
 
     while (
       !LSRamp.isFinished() || !RSRamp.isFinished() || !LSRamp2.isFinished() || !RSRamp2.isFinished() || !LSRamp3.isFinished() || !RSRamp3.isFinished() || !LSRamp4.isFinished() || !RSRamp4.isFinished()) {
@@ -1680,63 +2148,156 @@ void moveRamp(){
   moveBackRamp();
 }
 
+void moveRampSimul(){
+    bool isReady = false; 
+  int count = 5;
+  int SPEED_FOWARD = SPEED / 4;
+  int SPEED_SLOW = SPEED * 2;
+  // LSRamp.go(SIL.read(), SPEED);
+  // RSRamp.go(SIR.read(), SPEED);
+  // LSRamp2.go(SKL.read(), SPEED_SLOW);
+  // RSRamp2.go(SKR.read(), SPEED_SLOW);
+  // LSRamp3.go(SJL.read(), SPEED);
+  // RSRamp3.go(SJR.read(), SPEED);
+  // LSRamp4.go(SLL.read(), SPEED);
+  // RSRamp4.go(SLR.read(), SPEED);
+
+  for (int i = 0; i < maxSteps; i++) {
+    float leftTarget_J;
+    float rightTarget_J;
+    float leftTarget_L;
+    float rightTarget_L;
+
+    float leftTarget_I = RAMP_I_LA[i] + err[0][0];
+    float rightTarget_I = RAMP_I_RA[i] + err[0][1];
+
+    float leftTarget_K = RAMP_K_LA[i] + err[2][0];
+    float rightTarget_K = RAMP_K_RA[i] + err[2][1];
+
+    if(i < 7){
+      leftTarget_J = RAMP_J_LA[i + count] + err[1][0];
+      rightTarget_J = RAMP_J_RA[i + count] + err[1][1];
+
+      leftTarget_L = RAMP_L_LA[i + count] + err[3][0];
+      rightTarget_L = RAMP_L_RA[i + count] + err[3][1];
+
+      LSRamp.go(leftTarget_I, RAMPSPEED);
+      RSRamp.go(rightTarget_I, RAMPSPEED);
+      LSRamp2.go(leftTarget_K, RAMPSPEED);
+      RSRamp2.go(rightTarget_K, RAMPSPEED);
+
+      LSRamp3.go(leftTarget_J, RAMPSPEED);
+      RSRamp3.go(rightTarget_J, RAMPSPEED);
+      LSRamp4.go(leftTarget_L, RAMPSPEED);
+      RSRamp4.go(rightTarget_L, RAMPSPEED);
+    } else{
+      leftTarget_J = J_LA[i - 7] + err[1][0];
+      rightTarget_J = J_RA[i -  7] + err[1][1];
+
+      leftTarget_L = L_LA[i - 7] + err[3][0];
+      rightTarget_L = L_RA[i - 7] + err[3][1];
+
+      LSRamp.go(leftTarget_I, RAMPSPEED);
+      RSRamp.go(rightTarget_I, RAMPSPEED);
+      LSRamp2.go(leftTarget_K, RAMPSPEED);
+      RSRamp2.go(rightTarget_K, RAMPSPEED);
+
+      LSRamp3.go(leftTarget_J, RAMPSPEED);
+      RSRamp3.go(rightTarget_J, RAMPSPEED);
+      LSRamp4.go(leftTarget_L, RAMPSPEED);
+      RSRamp4.go(rightTarget_L, RAMPSPEED);
+    }
+
+    while (
+      !LSRamp.isFinished() || !RSRamp.isFinished() || !LSRamp2.isFinished() || !RSRamp2.isFinished() || !LSRamp3.isFinished() || !RSRamp3.isFinished() || !LSRamp4.isFinished() || !RSRamp4.isFinished()) {
+
+      LSRamp.update();
+      RSRamp.update();
+      LSRamp2.update();
+      RSRamp2.update();
+      LSRamp3.update();
+      RSRamp3.update();
+      LSRamp4.update();
+      RSRamp4.update();
+
+      SIL.write(LSRamp.getValue());
+      SIR.write(RSRamp.getValue());
+      SKL.write(LSRamp2.getValue());
+      SKR.write(RSRamp2.getValue());
+
+      SJL.write(LSRamp3.getValue());
+      SJR.write(RSRamp3.getValue());
+      SLL.write(LSRamp4.getValue());
+      SLR.write(RSRamp4.getValue());
+    }
+  }
+}
+
 void settingServo() {
   if (Serial.available() > 0) {
     char ch = Serial.read();        
     int angle = Serial.parseInt(); 
 
-    switch (ch) {
-      case 'q':  // Left inner servo
-        SIL.write(angle);
-        Serial.print("SIL set to: ");
-        Serial.println(angle);
-        break;
+    // Determine angle limit based on servo
+    int limit = (ch == 'r' || ch == 'i') ? 142 : 120;
 
-      case 'w':  // Left joint servo
-        SJL.write(angle);
-        Serial.print("SJL set to: ");
-        Serial.println(angle);
-        break;
+    if (angle >= 0 && angle <= limit) {
+      switch (ch) {
+        case 'q':  
+          SIL.write(angle + err[0][0]);
+          Serial.print("SIL set to: ");
+          Serial.println(angle);
+          break;
 
-      case 'e':  // Left knee servo
-        SKL.write(angle);
-        Serial.print("SKL set to: ");
-        Serial.println(angle);
-        break;
+        case 'w': 
+          SJL.write(angle + err[1][0]);
+          Serial.print("SJL set to: ");
+          Serial.println(angle);
+          break;
 
-      case 'r':  // Left lower servo
-        SLL.write(angle);
-        Serial.print("SLL set to: ");
-        Serial.println(angle);
-        break;
+        case 'e':  
+          SKL.write(angle + err[2][0]);
+          Serial.print("SKL set to: ");
+          Serial.println(angle);
+          break;
 
-      case 't':  // Right inner servo
-        SIR.write(angle);
-        Serial.print("SIR set to: ");
-        Serial.println(angle);
-        break;
+        case 'r':  
+          SLL.write(angle + err[3][0]);
+          Serial.print("SLL set to: ");
+          Serial.println(angle);
+          break;
 
-      case 'y':  // Right joint servo
-        SJR.write(angle);
-        Serial.print("SJR set to: ");
-        Serial.println(angle);
-        break;
+        case 't': 
+          SIR.write(angle + err[0][1]);
+          Serial.print("SIR set to: ");
+          Serial.println(angle);
+          break;
 
-      case 'u':  // Right knee servo
-        SKR.write(angle);
-        Serial.print("SKR set to: ");
-        Serial.println(angle);
-        break;
+        case 'y': 
+          SJR.write(angle + err[1][1]);
+          Serial.print("SJR set to: ");
+          Serial.println(angle);
+          break;
 
-      case 'i':  // Right lower servo
-        SLR.write(angle);
-        Serial.print("SLR set to: ");
-        Serial.println(angle);
-        break;
+        case 'u':  
+          SKR.write(angle + err[2][1]);
+          Serial.print("SKR set to: ");
+          Serial.println(angle);
+          break;
 
-      default:
-        Serial.println("Invalid command! Use q,w,e,r,t,y,u,i + angle");
-        break;
+        case 'i': 
+          SLR.write(angle + err[3][1]);
+          Serial.print("SLR set to: ");
+          Serial.println(angle);
+          break;
+
+        default:
+          Serial.println("Invalid command! Use q,w,e,r,t,y,u,i + angle");
+          break;
+      }
+    } else {
+      Serial.print("Angle out of range! Max for this servo is ");
+      Serial.println(limit);
     }
 
     while (Serial.available() > 0) {
