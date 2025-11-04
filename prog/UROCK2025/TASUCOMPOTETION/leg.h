@@ -14,17 +14,30 @@
 #define SLL_PIN 32
 #define SLR_PIN 21
 
-#define SPEED 50
+#define SPEED 70
+#define STOMPSPEED 180
+#define READYSPEED 500
 #define SERVO_MIN_PULSE 500
 #define SERVO_MAX_PULSE 2500
 #define SERVO_HERTZ 300
 #define RESOLUTION 8
-#define INIT 88
-#define INIT2 31
-#define INIT180 133
-#define INIT1802 47
+#define INIT 78
+#define INIT2 42
+#define INIT180 117
+#define INIT1802 63
+
+#define LIFTLEG 63
+#define LIFTLEG2 56
+
+#define LIFTLEG_L 95
+#define LIFTLEG2_L 85
+
+#define SIXTY 60
+#define NINETY 90
 
 int err[4][2] = {{3,4}, {3,6}, {1,6}, {4,8}};
+
+bool flag = true;
 
 float pi = M_PI;  // M_PI is defined as 3.14159265358979323846
 float x;
@@ -32,8 +45,8 @@ float y;
 
 const float L1 = 130.0;
 const float L2 = 195.0;
-const float DistanceBetweenServo = 35;
-const float ground_offset = 250.0;
+const float DistanceBetweenServo = 34.8;
+const float ground_offset = 200.0;
 
 const float step_length = 90;
 const float step_height = 40;
@@ -49,11 +62,17 @@ float I_RA[maxSteps];
 float BACK_I_LA[maxSteps];
 float BACK_I_RA[maxSteps];
 
+float INIT_I_LA[1];
+float INIT_I_RA[1];
+
 float J_LA[maxSteps];
 float J_RA[maxSteps];
 
 float BACK_J_LA[maxSteps];
 float BACK_J_RA[maxSteps];
+
+float INIT_J_LA[1];
+float INIT_J_RA[1];
 
 float K_LA[maxSteps];
 float K_RA[maxSteps];
@@ -61,11 +80,17 @@ float K_RA[maxSteps];
 float BACK_K_LA[maxSteps];
 float BACK_K_RA[maxSteps];
 
+float INIT_K_LA[1];
+float INIT_K_RA[1];
+
 float L_LA[maxSteps];
 float L_RA[maxSteps];
 
 float BACK_L_LA[maxSteps];
 float BACK_L_RA[maxSteps];
+
+float INIT_L_LA[1];
+float INIT_L_RA[1];
 
 // float x0 = -step_length/2;
 // float yZero =  ground_offset;
@@ -76,13 +101,16 @@ float BACK_L_RA[maxSteps];
 // float xTwo = step_length/2;
 // float yTwo = ground_offset;
 
-float xZero = -step_length / 2 - (34.8/2);  //WHY
+float xZero = -step_length / 2;  //WHY
+// float xZero = -step_length / 2;  //WHY
 float yZero = ground_offset;
 
-float xOne = (34.8/2);
+// float xOne = (34.8/2);
+float xOne = 0;
 float yOne = ground_offset - 2 * step_height;
 
-float xTwo = step_length / 2 + (34.8/2);
+// float xTwo = step_length / 2 - (34.8/2);
+float xTwo = step_length / 2;
 float yTwo = ground_offset;
 
 Servo SIL;
@@ -243,10 +271,15 @@ void leg_k() {
     // Serial.println(y);
 
     ServoAngles angles = IK_ThetaAngle(x, y);
-    float LeftServoAngle = angles.left;
-    float RightServoAngle = angles.right;
+    // float LeftServoAngle = angles.left;
+    // float RightServoAngle = angles.right;
     K_LA[index] = angles.left;
     K_RA[index] = angles.right;
+
+    if(index == 0){
+      INIT_K_LA[index] = angles.left;
+      INIT_K_RA[index] = angles.right;
+    }
     Serial.print("INDEX: ");
     Serial.println(index);
     Serial.print("SKL");
@@ -307,8 +340,8 @@ void leg_k() {
         // IK_ThetaAngle(x, y);
 
     //  delay(1000);
-    Serial.print("INDEX: ");
-    Serial.println(index);
+    // Serial.print("INDEX: ");
+    // Serial.println(index);
   }
   Serial.println("Stored Servo Angles");
   for (int i = 0; i < index; i++) {
@@ -354,6 +387,13 @@ void leg_i() {  //and j
     I_RA[index] = RightServoAngle;
     J_LA[index] = angles.left;
     J_RA[index] = angles.right;
+    
+    if(index == 0){
+      INIT_I_LA[index] = angles.left;
+      INIT_I_RA[index] = angles.right;
+      INIT_J_LA[index] = angles.left;
+      INIT_J_RA[index] = angles.right;
+    }
     Serial.print("INDEX: ");
     Serial.println(index);
     Serial.print("SIR");
@@ -446,6 +486,10 @@ void leg_l() {
     float RightServoAngle = angles.right;
     L_LA[index] = angles.left;
     L_RA[index] = angles.right;
+    if(index == 0){
+      INIT_L_LA[index] = angles.left;
+      INIT_L_RA[index] = angles.right;
+    }
     Serial.print("INDEX: ");
     Serial.println(index);
     Serial.print("SLL");
@@ -509,25 +553,349 @@ void leg_l() {
   }
 }
 
-void moveAll3(){
-  for(int i=0; i < maxSteps;i++){
-    SIL.write(I_LA[i] + err[0][0]);
-    SIR.write(I_RA[i] + err[0][1]);
-    delay(60);
+void stomp_i(){
+  int LIFT_SPEED = STOMPSPEED;   
+  int DROP_SPEED = STOMPSPEED;       
+  // int DROP_SPEED = STOMPSPEED / 2;       
+
+  LSRamp.go(SIL.read(), LIFT_SPEED);
+
+  float leftTarget_I = INIT + err[0][0];
+
+  LSRamp.go(leftTarget_I, DROP_SPEED);
+
+  while (
+    !LSRamp.isFinished()) {
+    LSRamp.update(); 
+
+    SIL.write(LSRamp.getValue());
   }
-  for(int i=0; i < maxSteps;i++){
-    SIL.write(BACK_I_LA[i] + err[0][0]);
-    SIR.write(BACK_I_RA[i] + err[0][1]);
-    delay(60);
+
+  // delay(STOMPSPEED); 
+
+  leftTarget_I = LIFTLEG + err[0][0];
+
+  LSRamp.go(leftTarget_I, LIFT_SPEED);
+
+
+  while (
+    !LSRamp.isFinished()
+  ) {
+    LSRamp.update(); RSRamp.update();
+
+    SIL.write(LSRamp.getValue());
   }
+
+  // delay(STOMPSPEED);
 }
 
-void moveAll(){
-  int count = 5;
+void stompLeg60() {
+  int LIFT_SPEED = STOMPSPEED;   
+  // int DROP_SPEED = STOMPSPEED;       
+  int DROP_SPEED = STOMPSPEED / 2;       
+
+  LSRamp.go(SIL.read(), LIFT_SPEED);
+  RSRamp.go(SIR.read(), LIFT_SPEED);
+  LSRamp2.go(SKL.read(), LIFT_SPEED);
+  RSRamp2.go(SKR.read(), LIFT_SPEED);
+  LSRamp3.go(SJL.read(), LIFT_SPEED);
+  RSRamp3.go(SJR.read(), LIFT_SPEED);
+  LSRamp4.go(SLL.read(), LIFT_SPEED);
+  RSRamp4.go(SLR.read(), LIFT_SPEED);
+
+  float leftTarget_I = INIT + err[0][0];
+  float rightTarget_I = INIT2 + err[0][1];
+
+  float leftTarget_K = INIT + err[2][0];
+  float rightTarget_K = INIT2 + err[2][1];
+
+  float leftTarget_J = SIXTY + err[1][0];  
+  float rightTarget_J = SIXTY + err[1][1];
+
+  float leftTarget_L = NINETY + err[3][0];
+  float rightTarget_L = NINETY + err[3][1];
+
+  LSRamp.go(leftTarget_I, DROP_SPEED);
+  RSRamp.go(rightTarget_I, DROP_SPEED);
+  LSRamp2.go(leftTarget_K, DROP_SPEED);
+  RSRamp2.go(rightTarget_K, DROP_SPEED);
+  LSRamp3.go(leftTarget_J, LIFT_SPEED);
+  RSRamp3.go(rightTarget_J, LIFT_SPEED);
+  LSRamp4.go(leftTarget_L, LIFT_SPEED);
+  RSRamp4.go(rightTarget_L, LIFT_SPEED);
+
+  while (
+    !LSRamp.isFinished() || !RSRamp.isFinished() ||
+    !LSRamp2.isFinished() || !RSRamp2.isFinished() ||
+    !LSRamp3.isFinished() || !RSRamp3.isFinished() ||
+    !LSRamp4.isFinished() || !RSRamp4.isFinished()
+  ) {
+    LSRamp.update(); RSRamp.update();
+    LSRamp2.update(); RSRamp2.update();
+    LSRamp3.update(); RSRamp3.update();
+    LSRamp4.update(); RSRamp4.update();
+
+    SIL.write(LSRamp.getValue());
+    SIR.write(RSRamp.getValue());
+    SKL.write(LSRamp2.getValue());
+    SKR.write(RSRamp2.getValue());
+    SJL.write(LSRamp3.getValue());
+    SJR.write(RSRamp3.getValue());
+    SLL.write(LSRamp4.getValue());
+    SLR.write(RSRamp4.getValue());
+  }
+
+  // delay(STOMPSPEED); 
+
+  leftTarget_I = SIXTY + err[0][0];
+  rightTarget_I = SIXTY + err[0][1];
+
+  leftTarget_K = SIXTY + err[2][0];
+  rightTarget_K = SIXTY + err[2][1];
+
+  leftTarget_J = INIT + err[1][0];
+  rightTarget_J = INIT2 + err[1][1];
+
+  leftTarget_L = INIT180 + err[3][0];
+  rightTarget_L = INIT1802 + err[3][1];
+
+  LSRamp.go(leftTarget_I, LIFT_SPEED);
+  RSRamp.go(rightTarget_I, LIFT_SPEED);
+  LSRamp2.go(leftTarget_K, LIFT_SPEED);
+  RSRamp2.go(rightTarget_K, LIFT_SPEED);
+  LSRamp3.go(leftTarget_J, DROP_SPEED);
+  RSRamp3.go(rightTarget_J, DROP_SPEED);
+  LSRamp4.go(leftTarget_L, DROP_SPEED);
+  RSRamp4.go(rightTarget_L, DROP_SPEED);
+
+  while (
+    !LSRamp.isFinished() || !RSRamp.isFinished() ||
+    !LSRamp2.isFinished() || !RSRamp2.isFinished() ||
+    !LSRamp3.isFinished() || !RSRamp3.isFinished() ||
+    !LSRamp4.isFinished() || !RSRamp4.isFinished()
+  ) {
+    LSRamp.update(); RSRamp.update();
+    LSRamp2.update(); RSRamp2.update();
+    LSRamp3.update(); RSRamp3.update();
+    LSRamp4.update(); RSRamp4.update();
+
+    SIL.write(LSRamp.getValue());
+    SIR.write(RSRamp.getValue());
+    SKL.write(LSRamp2.getValue());
+    SKR.write(RSRamp2.getValue());
+    SJL.write(LSRamp3.getValue());
+    SJR.write(RSRamp3.getValue());
+    SLL.write(LSRamp4.getValue());
+    SLR.write(RSRamp4.getValue());
+  }
+
+  // delay(STOMPSPEED);
+}
+
+void stompEachLeg() {
+  
+}
+
+void stompLeg() {
+  int LIFT_SPEED = STOMPSPEED;   
+  int DROP_SPEED = STOMPSPEED;       
+  // int DROP_SPEED = STOMPSPEED / 2;       
+
+  LSRamp.go(SIL.read(), LIFT_SPEED);
+  RSRamp.go(SIR.read(), LIFT_SPEED);
+  LSRamp2.go(SKL.read(), LIFT_SPEED);
+  RSRamp2.go(SKR.read(), LIFT_SPEED);
+  LSRamp3.go(SJL.read(), LIFT_SPEED);
+  RSRamp3.go(SJR.read(), LIFT_SPEED);
+  LSRamp4.go(SLL.read(), LIFT_SPEED);
+  RSRamp4.go(SLR.read(), LIFT_SPEED);
+
+  float leftTarget_I = INIT + err[0][0];
+  float rightTarget_I = INIT2 + err[0][1];
+
+  float leftTarget_K = INIT + err[2][0];
+  float rightTarget_K = INIT2 + err[2][1];
+
+  float leftTarget_J = LIFTLEG + err[1][0];  
+  float rightTarget_J = LIFTLEG2 + err[1][1];
+
+  float leftTarget_L = LIFTLEG_L + err[3][0];
+  float rightTarget_L = LIFTLEG_L + err[3][1];
+
+  LSRamp.go(leftTarget_I, DROP_SPEED);
+  RSRamp.go(rightTarget_I, DROP_SPEED);
+  LSRamp2.go(leftTarget_K, DROP_SPEED);
+  RSRamp2.go(rightTarget_K, DROP_SPEED);
+  LSRamp3.go(leftTarget_J, LIFT_SPEED);
+  RSRamp3.go(rightTarget_J, LIFT_SPEED);
+  LSRamp4.go(leftTarget_L, LIFT_SPEED);
+  RSRamp4.go(rightTarget_L, LIFT_SPEED);
+
+  while (
+    !LSRamp.isFinished() || !RSRamp.isFinished() ||
+    !LSRamp2.isFinished() || !RSRamp2.isFinished() ||
+    !LSRamp3.isFinished() || !RSRamp3.isFinished() ||
+    !LSRamp4.isFinished() || !RSRamp4.isFinished()
+  ) {
+    LSRamp.update(); RSRamp.update();
+    LSRamp2.update(); RSRamp2.update();
+    LSRamp3.update(); RSRamp3.update();
+    LSRamp4.update(); RSRamp4.update();
+
+    SIL.write(LSRamp.getValue());
+    SIR.write(RSRamp.getValue());
+    SKL.write(LSRamp2.getValue());
+    SKR.write(RSRamp2.getValue());
+    SJL.write(LSRamp3.getValue());
+    SJR.write(RSRamp3.getValue());
+    SLL.write(LSRamp4.getValue());
+    SLR.write(RSRamp4.getValue());
+  }
+
+  // delay(STOMPSPEED); 
+
+  leftTarget_I = LIFTLEG + err[0][0];
+  rightTarget_I = LIFTLEG2 + err[0][1];
+
+  leftTarget_K = LIFTLEG + err[2][0];
+  rightTarget_K = LIFTLEG2 + err[2][1];
+
+  leftTarget_J = INIT + err[1][0];
+  rightTarget_J = INIT2 + err[1][1];
+
+  leftTarget_L = INIT180 + err[3][0];
+  rightTarget_L = INIT1802 + err[3][1];
+
+  LSRamp.go(leftTarget_I, LIFT_SPEED);
+  RSRamp.go(rightTarget_I, LIFT_SPEED);
+  LSRamp2.go(leftTarget_K, LIFT_SPEED);
+  RSRamp2.go(rightTarget_K, LIFT_SPEED);
+  LSRamp3.go(leftTarget_J, DROP_SPEED);
+  RSRamp3.go(rightTarget_J, DROP_SPEED);
+  LSRamp4.go(leftTarget_L, DROP_SPEED);
+  RSRamp4.go(rightTarget_L, DROP_SPEED);
+
+  while (
+    !LSRamp.isFinished() || !RSRamp.isFinished() ||
+    !LSRamp2.isFinished() || !RSRamp2.isFinished() ||
+    !LSRamp3.isFinished() || !RSRamp3.isFinished() ||
+    !LSRamp4.isFinished() || !RSRamp4.isFinished()
+  ) {
+    LSRamp.update(); RSRamp.update();
+    LSRamp2.update(); RSRamp2.update();
+    LSRamp3.update(); RSRamp3.update();
+    LSRamp4.update(); RSRamp4.update();
+
+    SIL.write(LSRamp.getValue());
+    SIR.write(RSRamp.getValue());
+    SKL.write(LSRamp2.getValue());
+    SKR.write(RSRamp2.getValue());
+    SJL.write(LSRamp3.getValue());
+    SJR.write(RSRamp3.getValue());
+    SLL.write(LSRamp4.getValue());
+    SLR.write(RSRamp4.getValue());
+  }
+
+  // delay(STOMPSPEED);
+}
+
+void firstStep(){
+  int count = 6;
+  int SPEED_FOWARD = SPEED / 2;
+  while(flag){
   LSRamp.go(SIL.read(), SPEED);
   RSRamp.go(SIR.read(), SPEED);
   LSRamp2.go(SKL.read(), SPEED);
   RSRamp2.go(SKR.read(), SPEED);
+  LSRamp3.go(SJL.read(), SPEED);
+  RSRamp3.go(SJR.read(), SPEED);
+  LSRamp4.go(SLL.read(), SPEED);
+  RSRamp4.go(SLR.read(), SPEED);
+
+  for (int i = 3; i < maxSteps; i++) {
+    if(i == 11){
+      flag = false;
+    }
+    float leftTarget_J;
+    float rightTarget_J;
+    float leftTarget_L;
+    float rightTarget_L;
+
+    float leftTarget_I = I_LA[i] + err[0][0];
+    float rightTarget_I = I_RA[i] + err[0][1];
+
+    float leftTarget_K = K_LA[i] + err[2][0];
+    float rightTarget_K = K_RA[i] + err[2][1];
+
+    if(i < 6){
+      leftTarget_J = J_LA[i + count] + err[1][0];
+      rightTarget_J = J_RA[i + count] + err[1][1];
+
+      leftTarget_L = L_LA[i + count] + err[3][0];
+      rightTarget_L = L_RA[i + count] + err[3][1];
+
+      LSRamp.go(leftTarget_I, SPEED_FOWARD);
+      RSRamp.go(rightTarget_I, SPEED_FOWARD);
+      LSRamp2.go(leftTarget_K, SPEED_FOWARD);
+      RSRamp2.go(rightTarget_K, SPEED_FOWARD);
+
+      LSRamp3.go(leftTarget_J, SPEED);
+      RSRamp3.go(rightTarget_J, SPEED);
+      LSRamp4.go(leftTarget_L, SPEED);
+      RSRamp4.go(rightTarget_L, SPEED);
+    } else{
+      leftTarget_J = J_LA[i - 6] + err[1][0];
+      rightTarget_J = J_RA[i -  6] + err[1][1];
+
+      leftTarget_L = L_LA[i - 6] + err[3][0];
+      rightTarget_L = L_RA[i - 6] + err[3][1];
+
+      LSRamp.go(leftTarget_I, SPEED);
+      RSRamp.go(rightTarget_I, SPEED);
+      LSRamp2.go(leftTarget_K, SPEED);
+      RSRamp2.go(rightTarget_K, SPEED);
+
+      LSRamp3.go(leftTarget_J, SPEED_FOWARD);
+      RSRamp3.go(rightTarget_J, SPEED_FOWARD);
+      LSRamp4.go(leftTarget_L, SPEED_FOWARD);
+      RSRamp4.go(rightTarget_L, SPEED_FOWARD);
+    }
+
+    while (
+      !LSRamp.isFinished() || !RSRamp.isFinished() || !LSRamp2.isFinished() || !RSRamp2.isFinished() || !LSRamp3.isFinished() || !RSRamp3.isFinished() || !LSRamp4.isFinished() || !RSRamp4.isFinished()) {
+
+      LSRamp.update();
+      RSRamp.update();
+      LSRamp2.update();
+      RSRamp2.update();
+      LSRamp3.update();
+      RSRamp3.update();
+      LSRamp4.update();
+      RSRamp4.update();
+
+      SIL.write(LSRamp.getValue());
+      SIR.write(RSRamp.getValue());
+      SKL.write(LSRamp2.getValue());
+      SKR.write(RSRamp2.getValue());
+      
+      SJL.write(LSRamp3.getValue());
+      SJR.write(RSRamp3.getValue());
+      SLL.write(LSRamp4.getValue());
+      SLR.write(RSRamp4.getValue());
+    }
+  }
+  }
+}
+
+void moveAll(){
+  bool isReady = false; 
+  int count = 5;
+  int SPEED_FOWARD = SPEED;
+  int SPEED_SLOW = SPEED*2;
+  LSRamp.go(SIL.read(), SPEED);
+  RSRamp.go(SIR.read(), SPEED);
+  LSRamp2.go(SKL.read(), SPEED_SLOW);
+  RSRamp2.go(SKR.read(), SPEED_SLOW);
   LSRamp3.go(SJL.read(), SPEED);
   RSRamp3.go(SJR.read(), SPEED);
   LSRamp4.go(SLL.read(), SPEED);
@@ -551,22 +919,33 @@ void moveAll(){
 
       leftTarget_L = L_LA[i + count] + err[3][0];
       rightTarget_L = L_RA[i + count] + err[3][1];
+
+      LSRamp.go(leftTarget_I, SPEED_FOWARD);
+      RSRamp.go(rightTarget_I, SPEED_FOWARD);
+      LSRamp2.go(leftTarget_K, SPEED_SLOW);
+      RSRamp2.go(rightTarget_K, SPEED_SLOW);
+
+      LSRamp3.go(leftTarget_J, SPEED);
+      RSRamp3.go(rightTarget_J, SPEED);
+      LSRamp4.go(leftTarget_L, SPEED);
+      RSRamp4.go(rightTarget_L, SPEED);
     } else{
       leftTarget_J = J_LA[i - 7] + err[1][0];
       rightTarget_J = J_RA[i -  7] + err[1][1];
 
       leftTarget_L = L_LA[i - 7] + err[3][0];
       rightTarget_L = L_RA[i - 7] + err[3][1];
-    }
 
-    LSRamp.go(leftTarget_I, SPEED);
-    RSRamp.go(rightTarget_I, SPEED);
-    LSRamp2.go(leftTarget_K, SPEED);
-    RSRamp2.go(rightTarget_K, SPEED);
-    LSRamp3.go(leftTarget_J, SPEED);
-    RSRamp3.go(rightTarget_J, SPEED);
-    LSRamp4.go(leftTarget_L, SPEED);
-    RSRamp4.go(rightTarget_L, SPEED);
+      LSRamp.go(leftTarget_I, SPEED);
+      RSRamp.go(rightTarget_I, SPEED);
+      LSRamp2.go(leftTarget_K, SPEED_SLOW);
+      RSRamp2.go(rightTarget_K, SPEED_SLOW);
+
+      LSRamp3.go(leftTarget_J, SPEED_FOWARD);
+      RSRamp3.go(rightTarget_J, SPEED_FOWARD);
+      LSRamp4.go(leftTarget_L, SPEED_FOWARD);
+      RSRamp4.go(rightTarget_L, SPEED_FOWARD);
+    }
 
     while (
       !LSRamp.isFinished() || !RSRamp.isFinished() || !LSRamp2.isFinished() || !RSRamp2.isFinished() || !LSRamp3.isFinished() || !RSRamp3.isFinished() || !LSRamp4.isFinished() || !RSRamp4.isFinished()) {
@@ -584,6 +963,7 @@ void moveAll(){
       SIR.write(RSRamp.getValue());
       SKL.write(LSRamp2.getValue());
       SKR.write(RSRamp2.getValue());
+      
       SJL.write(LSRamp3.getValue());
       SJR.write(RSRamp3.getValue());
       SLL.write(LSRamp4.getValue());
@@ -808,11 +1188,11 @@ void initLeg(){
   float leftTarget_K = INIT + err[2][0];
   float rightTarget_K = INIT2 + err[2][1];
 
-  float leftTarget_J = INIT + err[1][0];
+  float leftTarget_J = INIT  + err[1][0];
   float rightTarget_J = INIT2 + err[1][1];
 
-  float leftTarget_L = INIT180 + err[3][0];
-  float rightTarget_L = INIT1802 + err[3][1];
+  float leftTarget_L = INIT180  + err[3][0];
+  float rightTarget_L = INIT1802  + err[3][1];
 
   LSRamp.go(leftTarget_I, SPEED);
   RSRamp.go(rightTarget_I, SPEED);
@@ -846,8 +1226,110 @@ void initLeg(){
   }
 }
 
+void readyMove(){
+  int LIFT_SPEED = READYSPEED;   
+  int DROP_SPEED = READYSPEED / 2;  
+  int index = 2;  
 
-void move_I() {
+  LSRamp.go(SIL.read(), LIFT_SPEED);
+  RSRamp.go(SIR.read(), LIFT_SPEED);
+  LSRamp2.go(SKL.read(), LIFT_SPEED);
+  RSRamp2.go(SKR.read(), LIFT_SPEED);
+  LSRamp3.go(SJL.read(), LIFT_SPEED);
+  RSRamp3.go(SJR.read(), LIFT_SPEED);
+  LSRamp4.go(SLL.read(), LIFT_SPEED);
+  RSRamp4.go(SLR.read(), LIFT_SPEED);
+
+  float leftTarget_I = INIT + err[0][0];
+  float rightTarget_I = INIT2 + err[0][1];
+
+  float leftTarget_K = INIT + err[2][0];
+  float rightTarget_K = INIT2 + err[2][1];
+
+  float leftTarget_J = J_LA[index] + err[1][0];  
+  float rightTarget_J = J_RA[index] + err[1][1];
+
+  float leftTarget_L = L_LA[index] + err[3][0];
+  float rightTarget_L = L_RA[index] + err[3][1];
+
+  LSRamp.go(leftTarget_I, DROP_SPEED);
+  RSRamp.go(rightTarget_I, DROP_SPEED);
+  LSRamp2.go(leftTarget_K, DROP_SPEED);
+  RSRamp2.go(rightTarget_K, DROP_SPEED);
+  LSRamp3.go(leftTarget_J, LIFT_SPEED);
+  RSRamp3.go(rightTarget_J, LIFT_SPEED);
+  LSRamp4.go(leftTarget_L, LIFT_SPEED);
+  RSRamp4.go(rightTarget_L, LIFT_SPEED);
+
+  while (
+    !LSRamp.isFinished() || !RSRamp.isFinished() ||
+    !LSRamp2.isFinished() || !RSRamp2.isFinished() ||
+    !LSRamp3.isFinished() || !RSRamp3.isFinished() ||
+    !LSRamp4.isFinished() || !RSRamp4.isFinished()
+  ) {
+    LSRamp.update(); RSRamp.update();
+    LSRamp2.update(); RSRamp2.update();
+    LSRamp3.update(); RSRamp3.update();
+    LSRamp4.update(); RSRamp4.update();
+
+    SIL.write(LSRamp.getValue());
+    SIR.write(RSRamp.getValue());
+    SKL.write(LSRamp2.getValue());
+    SKR.write(RSRamp2.getValue());
+    SJL.write(LSRamp3.getValue());
+    SJR.write(RSRamp3.getValue());
+    SLL.write(LSRamp4.getValue());
+    SLR.write(RSRamp4.getValue());
+  }
+
+  // delay(STOMPSPEED); 
+
+  leftTarget_I = I_LA[index] + err[0][0];
+  rightTarget_I = I_RA[index] + err[0][1];
+
+  leftTarget_K = K_LA[index] + err[2][0];
+  rightTarget_K = K_RA[index] + err[2][1];
+
+  leftTarget_J = INIT + err[1][0];
+  rightTarget_J = INIT2 + err[1][1];
+
+  leftTarget_L = INIT180 + err[3][0];
+  rightTarget_L = INIT1802 + err[3][1];
+
+  LSRamp.go(leftTarget_I, LIFT_SPEED);
+  RSRamp.go(rightTarget_I, LIFT_SPEED);
+  LSRamp2.go(leftTarget_K, LIFT_SPEED);
+  RSRamp2.go(rightTarget_K, LIFT_SPEED);
+  LSRamp3.go(leftTarget_J, DROP_SPEED);
+  RSRamp3.go(rightTarget_J, DROP_SPEED);
+  LSRamp4.go(leftTarget_L, DROP_SPEED);
+  RSRamp4.go(rightTarget_L, DROP_SPEED);
+
+  while (
+    !LSRamp.isFinished() || !RSRamp.isFinished() ||
+    !LSRamp2.isFinished() || !RSRamp2.isFinished() ||
+    !LSRamp3.isFinished() || !RSRamp3.isFinished() ||
+    !LSRamp4.isFinished() || !RSRamp4.isFinished()
+  ) {
+    LSRamp.update(); RSRamp.update();
+    LSRamp2.update(); RSRamp2.update();
+    LSRamp3.update(); RSRamp3.update();
+    LSRamp4.update(); RSRamp4.update();
+
+    SIL.write(LSRamp.getValue());
+    SIR.write(RSRamp.getValue());
+    SKL.write(LSRamp2.getValue());
+    SKR.write(RSRamp2.getValue());
+    SJL.write(LSRamp3.getValue());
+    SJR.write(RSRamp3.getValue());
+    SLL.write(LSRamp4.getValue());
+    SLR.write(RSRamp4.getValue());
+  }
+  index--;
+}
+
+
+void move_I(){
   LSRamp.go(SIL.read(), SPEED);
   RSRamp.go(SIR.read(), SPEED);
 
