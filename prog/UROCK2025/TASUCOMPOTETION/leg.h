@@ -14,7 +14,7 @@
 #define SLL_PIN 32
 #define SLR_PIN 21
 
-#define SPEED 70
+#define SPEED 60
 #define STOMPSPEED 180
 #define READYSPEED 500
 #define SERVO_MIN_PULSE 500
@@ -35,6 +35,8 @@
 #define SIXTY 60
 #define NINETY 90
 
+#define IJOFFSET 22
+
 int err[4][2] = {{3,4}, {3,6}, {1,6}, {4,8}};
 
 bool flag = true;
@@ -49,7 +51,7 @@ const float DistanceBetweenServo = 34.8;
 const float ground_offset = 200.0;
 
 const float step_length = 90;
-const float step_height = 40;
+const float step_height = 50;
 
 float delta_t = 0.2;  //the best fast 0.4 0.3 slow but clear
 
@@ -102,6 +104,7 @@ float INIT_L_RA[1];
 // float yTwo = ground_offset;
 
 float xZero = -step_length / 2;  //WHY
+float xZeroIJ = -(step_length + IJOFFSET) / 2;  //WHY
 // float xZero = -step_length / 2;  //WHY
 float yZero = ground_offset;
 
@@ -111,6 +114,7 @@ float yOne = ground_offset - 2 * step_height;
 
 // float xTwo = step_length / 2 - (34.8/2);
 float xTwo = step_length / 2;
+float xTwoIJ = (step_length + IJOFFSET) / 2;
 float yTwo = ground_offset;
 
 Servo SIL;
@@ -367,7 +371,7 @@ void leg_i() {  //and j
   for (t = 0; t <= 1; t += delta_t) {
     Serial.print("INDEX: ");
     Serial.println(index);
-    x = bezierQuadratic(xZero, xOne, xTwo, t);
+    x = bezierQuadratic(xZeroIJ, xOne, xTwoIJ, t);
     y = bezierQuadratic(yZero, yOne, yTwo, t);
 
     // Serial.print("Air phase - x: ");
@@ -421,7 +425,7 @@ void leg_i() {  //and j
     // Serial.print("Index: ");
     // Serial.println(index);
     // move back linearly along the ground
-    x = xTwo - t * step_length;
+    x = xTwoIJ - t * (step_length + IJOFFSET);
     y = ground_offset;
 
     // Serial.print("Ground phase - x: ");
@@ -890,16 +894,16 @@ void firstStep(){
 void moveAll(){
   bool isReady = false; 
   int count = 5;
-  int SPEED_FOWARD = SPEED;
-  int SPEED_SLOW = SPEED*2;
-  LSRamp.go(SIL.read(), SPEED);
-  RSRamp.go(SIR.read(), SPEED);
-  LSRamp2.go(SKL.read(), SPEED_SLOW);
-  RSRamp2.go(SKR.read(), SPEED_SLOW);
-  LSRamp3.go(SJL.read(), SPEED);
-  RSRamp3.go(SJR.read(), SPEED);
-  LSRamp4.go(SLL.read(), SPEED);
-  RSRamp4.go(SLR.read(), SPEED);
+  int SPEED_FOWARD = SPEED / 4;
+  int SPEED_SLOW = SPEED * 2;
+  // LSRamp.go(SIL.read(), SPEED);
+  // RSRamp.go(SIR.read(), SPEED);
+  // LSRamp2.go(SKL.read(), SPEED_SLOW);
+  // RSRamp2.go(SKR.read(), SPEED_SLOW);
+  // LSRamp3.go(SJL.read(), SPEED);
+  // RSRamp3.go(SJR.read(), SPEED);
+  // LSRamp4.go(SLL.read(), SPEED);
+  // RSRamp4.go(SLR.read(), SPEED);
 
   for (int i = 0; i < maxSteps; i++) {
     float leftTarget_J;
@@ -922,11 +926,11 @@ void moveAll(){
 
       LSRamp.go(leftTarget_I, SPEED_FOWARD);
       RSRamp.go(rightTarget_I, SPEED_FOWARD);
-      LSRamp2.go(leftTarget_K, SPEED_SLOW);
-      RSRamp2.go(rightTarget_K, SPEED_SLOW);
+      LSRamp2.go(leftTarget_K, SPEED);
+      RSRamp2.go(rightTarget_K, SPEED);
 
-      LSRamp3.go(leftTarget_J, SPEED);
-      RSRamp3.go(rightTarget_J, SPEED);
+      LSRamp3.go(leftTarget_J, SPEED_FOWARD);
+      RSRamp3.go(rightTarget_J, SPEED_FOWARD);
       LSRamp4.go(leftTarget_L, SPEED);
       RSRamp4.go(rightTarget_L, SPEED);
     } else{
@@ -938,8 +942,8 @@ void moveAll(){
 
       LSRamp.go(leftTarget_I, SPEED);
       RSRamp.go(rightTarget_I, SPEED);
-      LSRamp2.go(leftTarget_K, SPEED_SLOW);
-      RSRamp2.go(rightTarget_K, SPEED_SLOW);
+      LSRamp2.go(leftTarget_K, SPEED);
+      RSRamp2.go(rightTarget_K, SPEED);
 
       LSRamp3.go(leftTarget_J, SPEED_FOWARD);
       RSRamp3.go(rightTarget_J, SPEED_FOWARD);
@@ -963,7 +967,7 @@ void moveAll(){
       SIR.write(RSRamp.getValue());
       SKL.write(LSRamp2.getValue());
       SKR.write(RSRamp2.getValue());
-      
+
       SJL.write(LSRamp3.getValue());
       SJR.write(RSRamp3.getValue());
       SLL.write(LSRamp4.getValue());
