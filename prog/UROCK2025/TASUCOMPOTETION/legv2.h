@@ -1,3 +1,78 @@
+
+
+void walkSmall() {
+  float t;
+
+  for (t = 0; t <= 1; t += delta_fast) {
+    //Drag (ground phase) for SIL/SIR and SKL/SKR
+    float xDrag = xTwoSMALL - t * (small_step_length);
+    float yDrag = ground_offset + IKHEIGHTOFFSET;
+
+    float xOpDrag = xZeroSMALL + t * small_step_length;
+    float yOpDrag = ground_offset + IKHEIGHTOFFSET;
+
+    ServoAngles angle_i = IK_ThetaAngle(xDrag, yDrag);
+    ServoAngles angle_k = IK_ThetaAngle(xOpDrag, yOpDrag);
+
+    SIL.write(angle_i.left + err[0][0]);
+    SIR.write(angle_i.right + err[0][1]);
+    SKL.write(angle_k.left + err[2][0]);
+    SKR.write(angle_k.right + err[2][1]);
+
+    // --- Swing (forward) for SJL/SJR and SLL/SLR ---
+    float xSwing = bezierQuadratic(xZeroSMALL, xOne, xTwoSMALL, t);
+    float ySwing = bezierQuadratic(yZero, yOne, yTwo, t);
+
+    float xOpSwing = bezierQuadratic(xTwoSMALL, xOne, xZeroSMALL, t);
+    float yOpSwing = bezierQuadratic(yTwo, yOne, yZero, t);
+
+    ServoAngles angle_j = IK_ThetaAngle(xSwing, ySwing);
+    ServoAngles angle_l = IK_ThetaAngle180(xOpSwing, yOpSwing);
+
+    SJL.write(angle_j.left + err[1][0]);
+    SJR.write(angle_j.right + err[1][1]);
+    SLL.write(angle_l.left + err[3][0]);
+    SLR.write(angle_l.right + err[3][1]);
+
+    delay(delayStepSmall);
+  }
+
+  for (t = 0; t <= 1; t += delta_fast) {
+    //Swing (forward) for SIL/SIR and SKL/SKR ---
+    float xSwing = bezierQuadratic(xZeroSMALL, xOne, xTwoSMALL, t);
+    float ySwing = bezierQuadratic(yZeroIK, yOneIK, yTwoIK, t);
+
+    float xOpSwing = bezierQuadratic(xTwoSMALL, xOne, xZeroSMALL, t);
+    float yOpSwing = bezierQuadratic(yTwoIK, yOneIK, yZeroIK, t);
+
+    ServoAngles angle_i = IK_ThetaAngle(xSwing, ySwing);
+    ServoAngles angle_k = IK_ThetaAngle(xOpSwing, yOpSwing);
+
+    SIL.write(angle_i.left + err[0][0]);
+    SIR.write(angle_i.right + err[0][1]);
+    SKL.write(angle_k.left + err[2][0]);
+    SKR.write(angle_k.right + err[2][1]);
+
+    //Drag (ground phase) for SJL/SJR and SLL/SLR 
+    float xDrag = xTwoSMALL - t * (small_step_length);
+    float yDrag = ground_offset;
+
+    float xOpDrag = xZeroSMALL + t * small_step_length;
+    float yOpDrag = ground_offset;
+
+    ServoAngles angle_j = IK_ThetaAngle(xDrag, yDrag);
+    ServoAngles angle_l = IK_ThetaAngle180(xOpDrag, yOpDrag);
+
+    SJL.write(angle_j.left + err[1][0]);
+    SJR.write(angle_j.right + err[1][1]);
+    SLL.write(angle_l.left + err[3][0]);
+    SLR.write(angle_l.right + err[3][1]);
+
+    delay(delayStepSmall);
+  }
+}
+
+
 void walkPatternJL() {
   float t;
 
