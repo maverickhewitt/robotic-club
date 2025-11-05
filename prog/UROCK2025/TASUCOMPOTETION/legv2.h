@@ -1,15 +1,13 @@
-
-
-void walkSmall() {
+void walkPatternLow() {
   float t;
 
-  for (t = 0; t <= 1; t += delta_fast) {
+  for (t = 0; t <= 1; t += delta_tfast) {
     //Drag (ground phase) for SIL/SIR and SKL/SKR
-    float xDrag = xTwoSMALL - t * (small_step_length);
-    float yDrag = ground_offset + IKHEIGHTOFFSET;
+    float xDrag = xTwoIJ - t * (step_length + IJOFFSET);
+    float yDrag = ground_offset + GROUNDOFF;
 
-    float xOpDrag = xZeroSMALL + t * small_step_length;
-    float yOpDrag = ground_offset + IKHEIGHTOFFSET;
+    float xOpDrag = xZero + t * step_length;
+    float yOpDrag = ground_offset + GROUNDOFF;
 
     ServoAngles angle_i = IK_ThetaAngle(xDrag, yDrag);
     ServoAngles angle_k = IK_ThetaAngle(xOpDrag, yOpDrag);
@@ -20,11 +18,11 @@ void walkSmall() {
     SKR.write(angle_k.right + err[2][1]);
 
     // --- Swing (forward) for SJL/SJR and SLL/SLR ---
-    float xSwing = bezierQuadratic(xZeroSMALL, xOne, xTwoSMALL, t);
-    float ySwing = bezierQuadratic(yZero, yOne, yTwo, t);
+    float xSwing = bezierQuadratic(xZeroIJ, xOne, xTwoIJ, t);
+    float ySwing = bezierQuadratic(yZeroLow, yOneLow, yTwoLow, t);
 
-    float xOpSwing = bezierQuadratic(xTwoSMALL, xOne, xZeroSMALL, t);
-    float yOpSwing = bezierQuadratic(yTwo, yOne, yZero, t);
+    float xOpSwing = bezierQuadratic(xTwo, xOne, xZero, t);
+    float yOpSwing = bezierQuadratic(yTwoLow, yOneLow, yZeroLow, t);
 
     ServoAngles angle_j = IK_ThetaAngle(xSwing, ySwing);
     ServoAngles angle_l = IK_ThetaAngle180(xOpSwing, yOpSwing);
@@ -34,16 +32,16 @@ void walkSmall() {
     SLL.write(angle_l.left + err[3][0]);
     SLR.write(angle_l.right + err[3][1]);
 
-    delay(delayStepSmall);
+    delay(delayStep);
   }
 
-  for (t = 0; t <= 1; t += delta_fast) {
+  for (t = 0; t <= 1; t += delta_tfast) {
     //Swing (forward) for SIL/SIR and SKL/SKR ---
-    float xSwing = bezierQuadratic(xZeroSMALL, xOne, xTwoSMALL, t);
-    float ySwing = bezierQuadratic(yZeroIK, yOneIK, yTwoIK, t);
+    float xSwing = bezierQuadratic(xZeroIJ, xOne, xTwoIJ, t);
+    float ySwing = bezierQuadratic(yZeroLow, yOneLow, yTwoLow, t);
 
-    float xOpSwing = bezierQuadratic(xTwoSMALL, xOne, xZeroSMALL, t);
-    float yOpSwing = bezierQuadratic(yTwoIK, yOneIK, yZeroIK, t);
+    float xOpSwing = bezierQuadratic(xTwo, xOne, xZero, t);
+    float yOpSwing = bezierQuadratic(yTwoLow, yOneLow, yZeroLow, t);
 
     ServoAngles angle_i = IK_ThetaAngle(xSwing, ySwing);
     ServoAngles angle_k = IK_ThetaAngle(xOpSwing, yOpSwing);
@@ -54,11 +52,11 @@ void walkSmall() {
     SKR.write(angle_k.right + err[2][1]);
 
     //Drag (ground phase) for SJL/SJR and SLL/SLR 
-    float xDrag = xTwoSMALL - t * (small_step_length);
-    float yDrag = ground_offset;
+    float xDrag = xTwoIJ - t * (step_length + IJOFFSET);
+    float yDrag = ground_offset + GROUNDOFF;
 
-    float xOpDrag = xZeroSMALL + t * small_step_length;
-    float yOpDrag = ground_offset;
+    float xOpDrag = xZero + t * step_length;
+    float yOpDrag = ground_offset + GROUNDOFF;
 
     ServoAngles angle_j = IK_ThetaAngle(xDrag, yDrag);
     ServoAngles angle_l = IK_ThetaAngle180(xOpDrag, yOpDrag);
@@ -68,21 +66,20 @@ void walkSmall() {
     SLL.write(angle_l.left + err[3][0]);
     SLR.write(angle_l.right + err[3][1]);
 
-    delay(delayStepSmall);
+    delay(delayStep);
   }
 }
 
-
-void walkPatternJL() {
+void walkPatternGood() {
   float t;
 
   for (t = 0; t <= 1; t += delta_t) {
     //Drag (ground phase) for SIL/SIR and SKL/SKR
     float xDrag = xTwoIJ - t * (step_length + IJOFFSET);
-    float yDrag = ground_offset + IKHEIGHTOFFSET;
+    float yDrag = ground_offset;
 
     float xOpDrag = xZero + t * step_length;
-    float yOpDrag = ground_offset + IKHEIGHTOFFSET;
+    float yOpDrag = ground_offset;
 
     ServoAngles angle_i = IK_ThetaAngle(xDrag, yDrag);
     ServoAngles angle_k = IK_ThetaAngle(xOpDrag, yOpDrag);
@@ -113,10 +110,10 @@ void walkPatternJL() {
   for (t = 0; t <= 1; t += delta_t) {
     //Swing (forward) for SIL/SIR and SKL/SKR ---
     float xSwing = bezierQuadratic(xZeroIJ, xOne, xTwoIJ, t);
-    float ySwing = bezierQuadratic(yZeroIK, yOneIK, yTwoIK, t);
+    float ySwing = bezierQuadratic(yZero, yOne, yTwo, t);
 
     float xOpSwing = bezierQuadratic(xTwo, xOne, xZero, t);
-    float yOpSwing = bezierQuadratic(yTwoIK, yOneIK, yZeroIK, t);
+    float yOpSwing = bezierQuadratic(yTwo, yOne, yZero, t);
 
     ServoAngles angle_i = IK_ThetaAngle(xSwing, ySwing);
     ServoAngles angle_k = IK_ThetaAngle(xOpSwing, yOpSwing);
