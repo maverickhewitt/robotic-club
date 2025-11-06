@@ -44,7 +44,8 @@
 
 #define UP_RAMP 14
 
-#define IJOFFSET 14
+#define IJOFFSET 15
+#define IJOFFSET2 28
 
 #define IKHEIGHTOFFSET -6
 #define GROUNDOFF -30
@@ -76,7 +77,7 @@ const float ground_offset_rampback = ground_offset + RAMPGROUNDOFFSETBACK;
 const float step_length = 90;
 const float step_height = 40;
 
-const float step_heightLow = 50;
+const float step_heightLow = 40;
 
 const float step_height_ramp = step_height;
 const float small_step_length = 50;
@@ -151,6 +152,8 @@ float INIT_L_RA[1];
 float xZero = -step_length / 2;  //WHY
 float xZeroKSMALL = -step_length / 2;  //WHY
 float xZeroIJ = -(step_length + IJOFFSET) / 2; 
+float xZeroIJLOW = -(step_length + IJOFFSET2) / 2; 
+
 float xZeroSMALL = -(small_step_length) / 2; //WHY
 // float xZero = -step_length / 2;  //WHY
 
@@ -175,6 +178,7 @@ float yOneRAMPBACK = ground_offset_rampback - 2 * step_height;
 float xTwo = step_length / 2;
 float xTwoKSMALL = small_step_length / 2;
 float xTwoIJ = (step_length + IJOFFSET) / 2;
+float xTwoIJLOW = (step_length + IJOFFSET2) / 2;
 float xTwoSMALL = (small_step_length) / 2;
 
 float yTwo = ground_offset;
