@@ -1,44 +1,42 @@
 #include "leg.h"
+#include "legv2.h"
+#include "ir.h"
+
+unsigned long startTime;
+bool isReady = true;
 
 void setup() {
   Serial.begin(115200);
   setupServo();
+  leg_i();
+  leg_l();
+  leg_k();
+  // // leg_i_ramp();
+  // // leg_l_ramp();W
+  // // leg_k_ramp();
+  // // leg_j_ramp();
 
-  // leg_i();
-  // leg_k();
-  // leg_l();
+  initLeg2();
+  delay(1000);
+  startTime = millis();
 }
 
 void loop() {
-  settingServo();
-  // SKL.write(60);
-  // SKR.write(130);
-
-  // SJL.write(60);
-  // SJR.write(130);
-
-  // SIL.write(60);
-  // SIR.write(130);
-
-  // SLL.write(60);
-  // SLR.write(130);
-
-  // delay(200);
-
-  // SKL.write(40);
-  // SKR.write(110);
-
-  // SJL.write(40);
-  // SJR.write(110);
-  
-  // SIL.write(40);
-  // SIR.write(110);
-
-  // SLL.write(40);
-  // SLR.write(110);
-
-  // delay(200);
-  // move_IK();
-  // move_JL();
+  if(millis() - startTime >= 32000){
+    walkPatternGood();
+  }else if(millis() - startTime >= 22000){
+    walkPatternLow();
+  }else{
+    walkPatternGood();
+  }
+  // if(isReady){
+  //   stompLeg();
+  //   if(millis() - startTime >= 2000){
+  //     isReady = false;
+  //   }
+  // }else{
+  //   firstStep();
+  //   // moveAll();
+  // }
 }
  
