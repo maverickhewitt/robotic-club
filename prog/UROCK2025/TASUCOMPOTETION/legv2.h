@@ -3,7 +3,7 @@ void walkPatternLow() {
 
   for (t = 0; t <= 1; t += delta_tfast) {
     //Drag (ground phase) for SIL/SIR and SKL/SKR
-    float xDrag = xTwoIJ - t * (step_length + IJOFFSET);
+    float xDrag = xTwoIJLOW - t * (step_length + IJOFFSET2);
     float yDrag = ground_offset + GROUNDOFF;
 
     float xOpDrag = xZero + t * step_length;
@@ -18,7 +18,7 @@ void walkPatternLow() {
     SKR.write(angle_k.right + err[2][1]);
 
     // --- Swing (forward) for SJL/SJR and SLL/SLR ---
-    float xSwing = bezierQuadratic(xZeroIJ, xOne, xTwoIJ, t);
+    float xSwing = bezierQuadratic(xZeroIJLOW, xOne, xTwoIJLOW, t);
     float ySwing = bezierQuadratic(yZeroLow, yOneLow, yTwoLow, t);
 
     float xOpSwing = bezierQuadratic(xTwo, xOne, xZero, t);
@@ -37,7 +37,7 @@ void walkPatternLow() {
 
   for (t = 0; t <= 1; t += delta_tfast) {
     //Swing (forward) for SIL/SIR and SKL/SKR ---
-    float xSwing = bezierQuadratic(xZeroIJ, xOne, xTwoIJ, t);
+    float xSwing = bezierQuadratic(xZeroIJLOW, xOne, xTwoIJLOW, t);
     float ySwing = bezierQuadratic(yZeroLow, yOneLow, yTwoLow, t);
 
     float xOpSwing = bezierQuadratic(xTwo, xOne, xZero, t);
@@ -52,7 +52,7 @@ void walkPatternLow() {
     SKR.write(angle_k.right + err[2][1]);
 
     //Drag (ground phase) for SJL/SJR and SLL/SLR 
-    float xDrag = xTwoIJ - t * (step_length + IJOFFSET);
+    float xDrag = xTwoIJLOW - t * (step_length + IJOFFSET2);
     float yDrag = ground_offset + GROUNDOFF;
 
     float xOpDrag = xZero + t * step_length;
